@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(npx --yes shadcn@latest init --base-color neutral --yes)",
+      "Bash(npx --yes shadcn@latest init --help)",
+      "Bash(npx --yes shadcn@latest init -d -f)",
+      "Bash(npx --yes shadcn@latest add button input label card form table badge sonner dialog dropdown-menu select avatar separator skeleton alert -y)",
+      "Bash(npx --yes shadcn@latest add form -y)",
+      "Bash(npx --yes shadcn@latest add form --overwrite -y)",
+      "Bash(npm run *)",
+      "Bash(curl -s -o NUL -w \"GET / → %{http_code}\\\\n\" http://localhost:3001/)",
+      "Bash(curl -s -o NUL -w \"GET /login → %{http_code}\\\\n\" http://localhost:3001/login)",
+      "Bash(curl -s -o NUL -w \"GET /dashboard → %{http_code}\\\\n\" http://localhost:3001/dashboard)",
+      "Bash(curl -s -o NUL -w \"GET /providers → %{http_code}\\\\n\" http://localhost:3001/providers)",
+      "Bash(curl -s -o NUL -w \"/dashboard → %{http_code}\\\\n\" http://localhost:3001/dashboard)",
+      "Bash(curl -s -o NUL -w \"/providers/new → %{http_code}\\\\n\" http://localhost:3001/providers/new)",
+      "Bash(curl -s -o NUL -w \"/providers/2 → %{http_code}\\\\n\" http://localhost:3001/providers/2)",
+      "Bash(tasklist)",
+      "Bash(npx tsc *)",
+      "Bash(netstat -ano)",
+      "PowerShell(Stop-Process -Id 26464 -Force)",
+      "Bash(curl -s -o NUL -w \"/providers → %{http_code}\\\\n\" http://localhost:3001/providers)",
+      "Bash(curl -s -o NUL -w \"/experiences → %{http_code}\\\\n\" http://localhost:3001/experiences)",
+      "Bash(curl -s -o NUL -w \"/leads → %{http_code}\\\\n\" http://localhost:3001/leads)",
+      "Bash(curl -s -o NUL -w \"/subscriptions/expiring → %{http_code}\\\\n\" http://localhost:3001/subscriptions/expiring)",
+      "Bash(curl -s -o NUL -w \"/settings → %{http_code}\\\\n\" http://localhost:3001/settings)",
+      "Bash(npx --yes shadcn@latest add tabs textarea switch -y)",
+      "Bash(curl -s -o NUL -w \"/experiences/1 → %{http_code}\\\\n\" http://localhost:3001/experiences/1)",
+      "Bash(git add *)"
+    ]
+  }
+}
