@@ -52,10 +52,12 @@ export function ProviderEdit({ id }: { id: number }) {
         <>
           <div>
             <h1 className="text-2xl font-bold tracking-tight">
-              Editar proveedor
+              Editar {q.data.business_name}
             </h1>
             <p className="text-muted-foreground text-sm">
-              {q.data.business_name}
+              Slug: <code className="bg-muted rounded px-1">{q.data.slug}</code>{" "}
+              · Estado:{" "}
+              <code className="bg-muted rounded px-1">{q.data.status}</code>
             </p>
           </div>
           <ProviderForm mode="edit" initial={q.data} />
