@@ -6,22 +6,23 @@ import { ProviderForm } from "@/components/providers/provider-form"
 export default function NewProviderPage() {
   return (
     <div className="space-y-6 max-w-4xl">
-      <div className="flex items-center gap-2">
+      <div>
         <Link
           href="/providers"
           className={buttonVariants({ variant: "ghost", size: "sm" })}
         >
           <ChevronLeft className="size-4" />
-          Volver
+          Volver a proveedores
         </Link>
       </div>
       <div>
-        <h1 className="text-2xl font-semibold">Nuevo proveedor</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Nuevo proveedor</h1>
         <p className="text-muted-foreground text-sm">
-          Se crea en estado <code>trial</code> con los días indicados.
+          Se crea en estado <code className="bg-muted rounded px-1">trial</code>{" "}
+          y queda pendiente de primer pago para activarse.
         </p>
       </div>
-      <ProviderForm />
+      <ProviderForm mode="create" />
     </div>
   )
 }

@@ -6,9 +6,11 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { toast } from "sonner"
-import { DollarSign, Loader2 } from "lucide-react"
+import { addDays, parseISO } from "date-fns"
+import { ArrowRight, DollarSign, Loader2 } from "lucide-react"
 
 import { api, apiErrorMessage } from "@/lib/api"
+import { formatDate } from "@/lib/utils"
 import type { ApiResponse, PaymentMethod } from "@/types"
 
 import { Button, buttonVariants } from "@/components/ui/button"
@@ -24,6 +26,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -37,9 +40,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
 
 const schema = z.object({
-  amount_usd: z.coerce.number().positive("Debe ser > 0"),
+  amount_usd: z.coerce.number().positive("Debe ser mayor a 0"),
   days_added: z.coerce.number().int().min(0).max(365).default(30),
   payment_method: z.enum([
     "transfer",
@@ -48,8 +52,8 @@ const schema = z.object({
     "crypto",
     "other",
   ]),
-  reference: z.string().optional(),
-  notes: z.string().optional(),
+  reference: z.string().max(180).optional(),
+  notes: z.string().max(500).optional(),
 })
 
 type FormIn = z.input<typeof schema>
@@ -63,20 +67,63 @@ const METHODS: { value: PaymentMethod; label: string }[] = [
   { value: "other", label: "Otro" },
 ]
 
-export function PayDialog({ providerId }: { providerId: number }) {
+function computeNewPaidUntil(
+  current: string | null | undefined,
+  days: number
+): Date | null {
+  if (!days || days < 0) return null
+  try {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const base =
+      current && parseISO(current) > today ? parseISO(current) : today
+    return addDays(base, days)
+  } catch {
+    return null
+  }
+}
+
+export function PayDialog({
+  providerId,
+  paidUntil,
+  monthlyFeeUsd,
+}: {
+  providerId: number
+  paidUntil?: string | null
+  monthlyFeeUsd?: number | string
+}) {
   const [open, setOpen] = React.useState(false)
   const qc = useQueryClient()
+  const defaultFee = Number(monthlyFeeUsd ?? 10) || 10
 
   const form = useForm<FormIn, unknown, FormOut>({
     resolver: zodResolver(schema),
     defaultValues: {
-      amount_usd: 10,
+      amount_usd: defaultFee,
       days_added: 30,
       payment_method: "transfer",
       reference: "",
       notes: "",
     },
   })
+
+  React.useEffect(() => {
+    if (open) {
+      form.reset({
+        amount_usd: defaultFee,
+        days_added: 30,
+        payment_method: "transfer",
+        reference: "",
+        notes: "",
+      })
+    }
+  }, [open, defaultFee, form])
+
+  const daysAdded = Number(form.watch("days_added") || 0)
+  const newPaidUntil = React.useMemo(
+    () => computeNewPaidUntil(paidUntil, daysAdded),
+    [paidUntil, daysAdded]
+  )
 
   const mutation = useMutation({
     mutationFn: async (values: FormOut) => {
@@ -92,7 +139,6 @@ export function PayDialog({ providerId }: { providerId: number }) {
       qc.invalidateQueries({ queryKey: ["provider-history", providerId] })
       qc.invalidateQueries({ queryKey: ["provider-stats", providerId] })
       qc.invalidateQueries({ queryKey: ["providers"] })
-      form.reset()
       setOpen(false)
     },
     onError: (err) => {
@@ -110,10 +156,12 @@ export function PayDialog({ providerId }: { providerId: number }) {
         <DialogHeader>
           <DialogTitle>Registrar pago</DialogTitle>
           <DialogDescription>
-            Suma <code>días_added</code> al <code>paid_until</code>. Si estaba
-            suspended o trial, pasa a active.
+            Suma los días al vencimiento. Si el proveedor está{" "}
+            <code>trial</code> o <code>suspended</code>, pasa a{" "}
+            <code>active</code>.
           </DialogDescription>
         </DialogHeader>
+
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit((v) => mutation.mutate(v))}
@@ -131,6 +179,7 @@ export function PayDialog({ providerId }: { providerId: number }) {
                       <Input
                         type="number"
                         step="0.01"
+                        min={0}
                         {...field}
                         value={field.value as number}
                       />
@@ -159,6 +208,25 @@ export function PayDialog({ providerId }: { providerId: number }) {
                 )}
               />
             </div>
+
+            <div className="bg-muted/50 rounded-md border px-3 py-2 text-sm">
+              <div className="text-muted-foreground flex items-center justify-between gap-2">
+                <span>Vencimiento actual</span>
+                <span className="font-mono">{formatDate(paidUntil)}</span>
+              </div>
+              <div className="mt-1 flex items-center justify-between gap-2 font-medium">
+                <span className="flex items-center gap-1">
+                  <ArrowRight className="size-3.5" />
+                  Nuevo vencimiento
+                </span>
+                <span className="font-mono">
+                  {newPaidUntil
+                    ? newPaidUntil.toLocaleDateString("es-AR")
+                    : "—"}
+                </span>
+              </div>
+            </div>
+
             <FormField
               control={form.control}
               name="payment_method"
@@ -193,8 +261,12 @@ export function PayDialog({ providerId }: { providerId: number }) {
                 <FormItem>
                   <FormLabel>Referencia</FormLabel>
                   <FormControl>
-                    <Input placeholder="ID transferencia / comprobante" {...field} />
+                    <Input
+                      placeholder="ID transferencia / comprobante"
+                      {...field}
+                    />
                   </FormControl>
+                  <FormDescription>Opcional</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -206,7 +278,7 @@ export function PayDialog({ providerId }: { providerId: number }) {
                 <FormItem>
                   <FormLabel>Notas</FormLabel>
                   <FormControl>
-                    <Input {...field} />
+                    <Textarea rows={2} {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -217,6 +289,7 @@ export function PayDialog({ providerId }: { providerId: number }) {
                 type="button"
                 variant="outline"
                 onClick={() => setOpen(false)}
+                disabled={mutation.isPending}
               >
                 Cancelar
               </Button>
