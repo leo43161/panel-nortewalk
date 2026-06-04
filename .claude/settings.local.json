@@ -27,7 +27,19 @@
       "Bash(curl -s -o NUL -w \"/settings → %{http_code}\\\\n\" http://localhost:3001/settings)",
       "Bash(npx --yes shadcn@latest add tabs textarea switch -y)",
       "Bash(curl -s -o NUL -w \"/experiences/1 → %{http_code}\\\\n\" http://localhost:3001/experiences/1)",
-      "Bash(git add *)"
+      "Bash(git add *)",
+      "Bash(mkdir -p \"app/\\(dashboard\\)/providers/[id]/edit\")",
+      "Bash(git commit -m 'refactor\\(providers\\): mostrar nombre + slug/status en header de edición *)",
+      "Bash(ls \"C:/xampp/htdocs/nortewalk_api/api/public/img\" \"C:/xampp/htdocs/nortewalk_api\")",
+      "Bash(npx --no-install tsc --noEmit)",
+      "PowerShell(npx --no-install tsc --noEmit 2>&1)",
+      "PowerShell($out = & npx --no-install tsc --noEmit 2>&1; $out; \"EXITCODE=$LASTEXITCODE\")",
+      "Bash(echo \"EXIT=$?\")",
+      "Bash(Remove-Item -Force \"E:\\\\leo\\\\NorteWalk\\\\AQUIIII\\\\panel-nortewalk\\\\app\\\\\\(provider\\)\\\\page.tsx\")",
+      "Bash(Remove-Item -Force \"E:\\\\leo\\\\NorteWalk\\\\AQUIIII\\\\panel-nortewalk\\\\app\\\\\\(provider\\)\\\\leads\\\\page.tsx\")",
+      "Bash(Remove-Item -Recurse -Force \"E:\\\\leo\\\\NorteWalk\\\\AQUIIII\\\\panel-nortewalk\\\\app\\\\\\(provider\\)\\\\leads\")",
+      "Bash(Remove-Item -Force \"E:\\\\leo\\\\NorteWalk\\\\AQUIIII\\\\panel-nortewalk\\\\app\\\\\\(provider\\)\\\\reservas\\\\page.tsx\")",
+      "Bash(Remove-Item -Recurse -Force \"E:\\\\leo\\\\NorteWalk\\\\AQUIIII\\\\panel-nortewalk\\\\app\\\\\\(provider\\)\\\\reservas\")"
     ]
   }
 }

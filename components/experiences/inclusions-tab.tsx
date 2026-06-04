@@ -5,10 +5,11 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { Check, Loader2, Trash2, X } from "lucide-react"
+import { Check, Loader2, Plus, Trash2, X } from "lucide-react"
 import { toast } from "sonner"
 
 import { api, apiErrorMessage } from "@/lib/api"
+import { cn } from "@/lib/utils"
 import type { ApiResponse, ExperienceInclusion, InclusionKind } from "@/types"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -74,7 +75,7 @@ export function InclusionsTab({ experienceId }: { experienceId: number }) {
     },
     onSuccess: () => {
       toast.success("Inclusión agregada")
-      form.reset({ text: "", kind: "included", sort_order: 0 })
+      form.reset({ text: "", kind: form.getValues("kind"), sort_order: 0 })
       qc.invalidateQueries({ queryKey: ["inclusions", experienceId] })
     },
     onError: (err) => toast.error(apiErrorMessage(err)),
@@ -92,23 +93,27 @@ export function InclusionsTab({ experienceId }: { experienceId: number }) {
   })
 
   const items = list.data ?? []
-  const included = items.filter((i) => i.kind === "included")
-  const excluded = items.filter((i) => i.kind === "excluded")
+  const included = items
+    .filter((i) => i.kind === "included")
+    .sort((a, b) => a.sort_order - b.sort_order)
+  const excluded = items
+    .filter((i) => i.kind === "excluded")
+    .sort((a, b) => a.sort_order - b.sort_order)
 
   return (
-    <div className="grid gap-4 lg:grid-cols-3">
-      <Card className="lg:col-span-1">
+    <div className="space-y-5">
+      <Card>
         <CardHeader>
-          <CardTitle>Agregar item</CardTitle>
+          <CardTitle>Agregar inclusión</CardTitle>
           <CardDescription>
-            Marcá si se incluye o se excluye del tour.
+            Indicá qué se incluye y qué no en la experiencia.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
             <form
               onSubmit={form.handleSubmit((v) => add.mutate(v))}
-              className="grid gap-3"
+              className="grid gap-3 sm:grid-cols-[1fr,160px,90px,auto]"
               noValidate
             >
               <FormField
@@ -119,7 +124,7 @@ export function InclusionsTab({ experienceId }: { experienceId: number }) {
                     <FormLabel>Texto</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="Botella de agua, equipo, etc."
+                        placeholder="Botella de agua, equipo de seguridad…"
                         {...field}
                       />
                     </FormControl>
@@ -166,22 +171,29 @@ export function InclusionsTab({ experienceId }: { experienceId: number }) {
                   </FormItem>
                 )}
               />
-              <Button type="submit" disabled={add.isPending}>
-                {add.isPending && <Loader2 className="size-4 animate-spin" />}
-                Agregar
-              </Button>
+              <div className="sm:self-end">
+                <Button type="submit" disabled={add.isPending} className="w-full">
+                  {add.isPending ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Plus className="size-4" />
+                  )}
+                  Agregar
+                </Button>
+              </div>
             </form>
           </Form>
         </CardContent>
       </Card>
 
-      <div className="lg:col-span-2 grid gap-4 md:grid-cols-2">
-        {list.isError && (
-          <Alert variant="destructive" className="md:col-span-2">
-            <AlertTitle>No se pudo cargar</AlertTitle>
-            <AlertDescription>{apiErrorMessage(list.error)}</AlertDescription>
-          </Alert>
-        )}
+      {list.isError && (
+        <Alert variant="destructive">
+          <AlertTitle>No se pudo cargar</AlertTitle>
+          <AlertDescription>{apiErrorMessage(list.error)}</AlertDescription>
+        </Alert>
+      )}
+
+      <div className="grid gap-4 md:grid-cols-2">
         <InclusionList
           title="Incluido"
           kind="included"
@@ -220,13 +232,15 @@ function InclusionList({
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-base">
           <Icon
-            className={
-              kind === "included"
-                ? "size-4 text-emerald-600"
-                : "size-4 text-red-600"
-            }
+            className={cn(
+              "size-4",
+              kind === "included" ? "text-emerald-600" : "text-red-600"
+            )}
           />
           {title}
+          <span className="text-muted-foreground ml-auto text-xs font-normal">
+            {items.length}
+          </span>
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -235,24 +249,24 @@ function InclusionList({
         ) : items.length === 0 ? (
           <p className="text-muted-foreground text-sm">Sin items.</p>
         ) : (
-          <ul className="space-y-1">
-            {items
-              .sort((a, b) => a.sort_order - b.sort_order)
-              .map((i) => (
-                <li
-                  key={i.id}
-                  className="flex items-center justify-between gap-2 border-b py-1 text-sm last:border-0"
+          <ul className="divide-y">
+            {items.map((i) => (
+              <li
+                key={i.id}
+                className="hover:bg-muted/30 group flex items-center justify-between gap-2 py-2 text-sm transition"
+              >
+                <span className="flex-1">{i.text}</span>
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  className="opacity-0 group-hover:opacity-100"
+                  onClick={() => onRemove(i.id)}
+                  title="Eliminar"
                 >
-                  <span>{i.text}</span>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    onClick={() => onRemove(i.id)}
-                  >
-                    <Trash2 className="size-3.5" />
-                  </Button>
-                </li>
-              ))}
+                  <Trash2 className="size-3.5" />
+                </Button>
+              </li>
+            ))}
           </ul>
         )}
       </CardContent>

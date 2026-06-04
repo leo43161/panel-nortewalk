@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useAuth } from "@/hooks/useAuth"
 import { cn } from "@/lib/utils"
+import { ThemeToggle } from "@/components/dashboard/theme-toggle"
 
 const PAGE_TITLES: Record<string, string> = {
   "/dashboard": "Dashboard",
@@ -43,6 +44,8 @@ export function Header() {
   return (
     <header className="bg-background/80 sticky top-0 z-10 flex h-14 items-center justify-between border-b px-4 backdrop-blur">
       <h2 className="text-foreground text-sm font-semibold tracking-tight">{title}</h2>
+      <div className="flex items-center gap-1">
+      <ThemeToggle />
       <DropdownMenu>
         <DropdownMenuTrigger
           className={cn(
@@ -76,6 +79,7 @@ export function Header() {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      </div>
     </header>
   )
 }

@@ -1,4 +1,4 @@
-export type Role = "superadmin" | "admin" | "viewer"
+export type Role = "admin" | "provider"
 
 export type Vertical = "fwt" | "adventure" | "experience" | "gastronomy"
 export type ExperienceType = "free" | "paid"
@@ -8,9 +8,10 @@ export type ProviderStatus = "active" | "trial" | "suspended" | "banned"
 
 export type LeadStatus =
   | "new"
-  | "redirected_whatsapp"
   | "contacted"
-  | "converted"
+  | "confirmed"
+  | "attended"
+  | "no_show"
   | "lost"
   | "spam"
 
@@ -27,6 +28,7 @@ export interface JwtPayload {
   id: number
   email: string
   role: Role
+  providerId: number | null
   iat?: number
   exp?: number
 }
@@ -36,6 +38,7 @@ export interface AdminUser {
   email: string
   full_name: string
   role: Role
+  provider_id: number | null
 }
 
 export interface LoginResponse {
@@ -203,12 +206,25 @@ export interface Lead {
   pax: number
   message: string | null
   source: string | null
+  utm_source?: string | null
+  utm_medium?: string | null
+  utm_campaign?: string | null
+  ip_address?: string | null
+  user_agent?: string | null
   status: LeadStatus
   created_at: string
   // joined from SP
   experience_title?: string
   experience_slug?: string
   vertical?: Vertical
+  category?: string
   type?: ExperienceType
+  city?: string
   provider_name?: string
+  whatsapp_e164?: string
+  provider_email?: string
+  // from sp_lead_get_detail (schedule join)
+  day_of_week?: number | null
+  schedule_time?: string | null
+  schedule_locale?: Locale | null
 }

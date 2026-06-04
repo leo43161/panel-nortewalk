@@ -10,6 +10,7 @@ import { Loader2 } from "lucide-react"
 
 import { api, apiErrorMessage } from "@/lib/api"
 import { useAuth } from "@/hooks/useAuth"
+import { homePathForRole } from "@/lib/auth"
 import type { ApiResponse, LoginResponse } from "@/types"
 
 import { BrandLogo } from "@/components/brand-logo"
@@ -40,7 +41,7 @@ type FormValues = z.infer<typeof schema>
 
 export default function LoginPage() {
   const router = useRouter()
-  const { login, ready, isAuthenticated } = useAuth()
+  const { login, ready, isAuthenticated, user } = useAuth()
   const [submitting, setSubmitting] = React.useState(false)
 
   const form = useForm<FormValues>({
@@ -49,10 +50,10 @@ export default function LoginPage() {
   })
 
   React.useEffect(() => {
-    if (ready && isAuthenticated) {
-      router.replace("/dashboard")
+    if (ready && isAuthenticated && user) {
+      router.replace(homePathForRole(user.role))
     }
-  }, [ready, isAuthenticated, router])
+  }, [ready, isAuthenticated, user, router])
 
   const onSubmit = async (values: FormValues) => {
     setSubmitting(true)
@@ -64,8 +65,9 @@ export default function LoginPage() {
       const token = data?.data?.token
       if (!token) throw new Error("Respuesta de login sin token")
       login(token)
+      const role = data.data.admin.role
       toast.success(`Bienvenido, ${data.data.admin.full_name || data.data.admin.email}`)
-      router.replace("/dashboard")
+      router.replace(homePathForRole(role))
     } catch (err) {
       toast.error(apiErrorMessage(err, "No se pudo iniciar sesión"))
     } finally {

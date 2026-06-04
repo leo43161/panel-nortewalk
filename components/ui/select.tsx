@@ -6,7 +6,60 @@ import { Select as SelectPrimitive } from "@base-ui/react/select"
 import { cn } from "@/lib/utils"
 import { ChevronDownIcon, CheckIcon, ChevronUpIcon } from "lucide-react"
 
-const Select = SelectPrimitive.Root
+// ---------------------------------------------------------------------------
+// Label registry: el Select raíz inspecciona el subárbol y arma un mapa
+// value→label para que <SelectValue/> muestre el label cuando está cerrado.
+// Base UI por defecto renderiza el value crudo si no le pasás items o
+// una función children.
+// ---------------------------------------------------------------------------
+
+type LabelsMap = Map<string, React.ReactNode>
+
+const SelectLabelsContext = React.createContext<LabelsMap>(new Map())
+
+const SELECT_ITEM_MARKER = Symbol.for("select-item-marker")
+
+function collectLabels(node: React.ReactNode, into: LabelsMap): void {
+  React.Children.forEach(node, (child) => {
+    if (!React.isValidElement(child)) return
+    const elType = child.type as unknown as {
+      [SELECT_ITEM_MARKER]?: boolean
+    } | string
+    const props = child.props as {
+      value?: unknown
+      children?: React.ReactNode
+    }
+    if (
+      typeof elType !== "string" &&
+      elType &&
+      typeof elType === "function" &&
+      (elType as { [SELECT_ITEM_MARKER]?: boolean })[SELECT_ITEM_MARKER]
+    ) {
+      if (props.value != null) {
+        into.set(String(props.value), props.children)
+      }
+      return
+    }
+    if (props.children) collectLabels(props.children, into)
+  })
+}
+
+function Select<Value, Multiple extends boolean | undefined = false>({
+  children,
+  ...props
+}: SelectPrimitive.Root.Props<Value, Multiple>) {
+  const labels = React.useMemo(() => {
+    const m: LabelsMap = new Map()
+    collectLabels(children, m)
+    return m
+  }, [children])
+
+  return (
+    <SelectLabelsContext.Provider value={labels}>
+      <SelectPrimitive.Root {...props}>{children}</SelectPrimitive.Root>
+    </SelectLabelsContext.Provider>
+  )
+}
 
 function SelectGroup({ className, ...props }: SelectPrimitive.Group.Props) {
   return (
@@ -18,13 +71,35 @@ function SelectGroup({ className, ...props }: SelectPrimitive.Group.Props) {
   )
 }
 
-function SelectValue({ className, ...props }: SelectPrimitive.Value.Props) {
+function SelectValue({
+  className,
+  children,
+  placeholder,
+  ...props
+}: SelectPrimitive.Value.Props) {
+  const labels = React.useContext(SelectLabelsContext)
+
+  // Si el caller ya pasó una función children, respetarla tal cual.
+  const renderValue =
+    typeof children === "function"
+      ? (children as (value: unknown) => React.ReactNode)
+      : (value: unknown) => {
+          if (value == null || value === "") {
+            return placeholder ?? children ?? null
+          }
+          const label = labels.get(String(value))
+          return label !== undefined ? label : String(value)
+        }
+
   return (
     <SelectPrimitive.Value
       data-slot="select-value"
       className={cn("flex flex-1 text-left", className)}
+      placeholder={placeholder}
       {...props}
-    />
+    >
+      {renderValue}
+    </SelectPrimitive.Value>
   )
 }
 
@@ -135,6 +210,12 @@ function SelectItem({
     </SelectPrimitive.Item>
   )
 }
+
+// Marker para que collectLabels reconozca este componente sin importar
+// dependencias de identidad de función.
+;(SelectItem as unknown as { [SELECT_ITEM_MARKER]: boolean })[
+  SELECT_ITEM_MARKER
+] = true
 
 function SelectSeparator({
   className,

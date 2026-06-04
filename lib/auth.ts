@@ -3,6 +3,19 @@ import type { JwtPayload, Role } from "@/types"
 
 const TOKEN_KEY = "nw_token"
 
+// Estructura cruda que firma el backend PHP (libs/auth.php JwtHandler::generateToken):
+// { iat, exp, data: { admin_id, email, role, provider_id } }
+interface RawJwt {
+  iat?: number
+  exp?: number
+  data?: {
+    admin_id?: number
+    email?: string
+    role?: Role
+    provider_id?: number | null
+  }
+}
+
 export function getToken(): string | null {
   if (typeof window === "undefined") return null
   return localStorage.getItem(TOKEN_KEY)
@@ -22,7 +35,17 @@ export function decodeToken(token?: string | null): JwtPayload | null {
   const t = token ?? getToken()
   if (!t) return null
   try {
-    return jwtDecode<JwtPayload>(t)
+    const raw = jwtDecode<RawJwt>(t)
+    const d = raw.data
+    if (!d?.role || !d?.email || !d?.admin_id) return null
+    return {
+      id: d.admin_id,
+      email: d.email,
+      role: d.role,
+      providerId: d.provider_id ?? null,
+      iat: raw.iat,
+      exp: raw.exp,
+    }
   } catch {
     return null
   }
@@ -37,4 +60,13 @@ export function isTokenValid(token?: string | null): boolean {
 export function hasRole(allowed: Role[], token?: string | null): boolean {
   const payload = decodeToken(token)
   return !!payload && allowed.includes(payload.role)
+}
+
+/**
+ * Devuelve la ruta home según el rol decodificado del token.
+ * - admin    → /dashboard
+ * - provider → /provider
+ */
+export function homePathForRole(role: Role): "/dashboard" | "/provider" {
+  return role === "provider" ? "/provider" : "/dashboard"
 }

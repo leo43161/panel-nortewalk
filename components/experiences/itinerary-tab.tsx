@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import { Loader2, Trash2 } from "lucide-react"
+import { Clock, Loader2, MapPin, Plus, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
 import { api, apiErrorMessage } from "@/lib/api"
@@ -55,15 +55,22 @@ export function ItineraryTab({ experienceId }: { experienceId: number }) {
     },
   })
 
+  const nextOrder = (list.data?.length ?? 0) + 1
+
   const form = useForm<FormIn, unknown, FormOut>({
     resolver: zodResolver(schema),
     defaultValues: {
-      step_order: 1,
+      step_order: nextOrder,
       title: "",
       description: "",
       duration_min: undefined,
     },
   })
+
+  React.useEffect(() => {
+    form.setValue("step_order", nextOrder)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nextOrder])
 
   const add = useMutation({
     mutationFn: async (v: FormOut) => {
@@ -76,7 +83,7 @@ export function ItineraryTab({ experienceId }: { experienceId: number }) {
     onSuccess: () => {
       toast.success("Paso agregado")
       form.reset({
-        step_order: (list.data?.length ?? 0) + 1,
+        step_order: nextOrder + 1,
         title: "",
         description: "",
         duration_min: undefined,
@@ -97,22 +104,22 @@ export function ItineraryTab({ experienceId }: { experienceId: number }) {
     onError: (err) => toast.error(apiErrorMessage(err)),
   })
 
-  const items = (list.data ?? []).sort(
-    (a, b) => a.step_order - b.step_order
-  )
+  const items = (list.data ?? []).sort((a, b) => a.step_order - b.step_order)
 
   return (
-    <div className="grid gap-4 lg:grid-cols-3">
-      <Card className="lg:col-span-1">
+    <div className="space-y-5">
+      <Card>
         <CardHeader>
-          <CardTitle>Nuevo paso</CardTitle>
-          <CardDescription>El orden determina la secuencia.</CardDescription>
+          <CardTitle>Nuevo paso del itinerario</CardTitle>
+          <CardDescription>
+            El orden define la secuencia. La duración es opcional por paso.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
             <form
               onSubmit={form.handleSubmit((v) => add.mutate(v))}
-              className="grid gap-3"
+              className="grid gap-3 sm:grid-cols-[80px,1fr,140px,auto]"
               noValidate
             >
               <FormField
@@ -120,7 +127,7 @@ export function ItineraryTab({ experienceId }: { experienceId: number }) {
                 name="step_order"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Orden</FormLabel>
+                    <FormLabel>#</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
@@ -141,20 +148,10 @@ export function ItineraryTab({ experienceId }: { experienceId: number }) {
                   <FormItem>
                     <FormLabel>Título</FormLabel>
                     <FormControl>
-                      <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Descripción</FormLabel>
-                    <FormControl>
-                      <Textarea rows={3} {...field} />
+                      <Input
+                        placeholder="Encuentro en la plaza"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -165,11 +162,12 @@ export function ItineraryTab({ experienceId }: { experienceId: number }) {
                 name="duration_min"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Duración (min, opcional)</FormLabel>
+                    <FormLabel>Duración (min)</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
                         min={0}
+                        placeholder="opcional"
                         {...field}
                         value={(field.value as number | undefined) ?? ""}
                       />
@@ -178,18 +176,41 @@ export function ItineraryTab({ experienceId }: { experienceId: number }) {
                   </FormItem>
                 )}
               />
-              <Button type="submit" disabled={add.isPending}>
-                {add.isPending && <Loader2 className="size-4 animate-spin" />}
-                Agregar
-              </Button>
+              <div className="sm:self-end">
+                <Button type="submit" disabled={add.isPending} className="w-full">
+                  {add.isPending ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : (
+                    <Plus className="size-4" />
+                  )}
+                  Agregar
+                </Button>
+              </div>
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem className="sm:col-span-4">
+                    <FormLabel>Descripción</FormLabel>
+                    <FormControl>
+                      <Textarea
+                        rows={2}
+                        placeholder="Qué se hace en este paso (opcional)"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </form>
           </Form>
         </CardContent>
       </Card>
 
-      <Card className="lg:col-span-2">
+      <Card>
         <CardHeader>
-          <CardTitle>Itinerario</CardTitle>
+          <CardTitle>Itinerario ({items.length})</CardTitle>
         </CardHeader>
         <CardContent>
           {list.isError && (
@@ -201,43 +222,53 @@ export function ItineraryTab({ experienceId }: { experienceId: number }) {
             </Alert>
           )}
           {list.isLoading ? (
-            <Loader2 className="text-muted-foreground size-5 animate-spin" />
+            <div className="flex h-24 items-center justify-center">
+              <Loader2 className="text-muted-foreground size-5 animate-spin" />
+            </div>
           ) : items.length === 0 ? (
-            <p className="text-muted-foreground text-sm">
-              Sin pasos cargados.
-            </p>
+            <div className="text-muted-foreground flex flex-col items-center gap-2 py-10 text-center text-sm">
+              <MapPin className="size-8" />
+              <p>Sin pasos cargados.</p>
+            </div>
           ) : (
-            <ol className="space-y-3">
+            <ol className="relative space-y-3 border-l-2 border-dashed border-muted pl-6">
               {items.map((s) => (
                 <li
                   key={s.id}
-                  className="flex items-start justify-between gap-3 border-b pb-3 last:border-0"
+                  className="group relative"
                 >
-                  <div className="flex-1">
-                    <div className="flex items-baseline gap-2">
-                      <span className="bg-muted rounded px-1.5 py-0.5 font-mono text-xs">
-                        {s.step_order}
-                      </span>
-                      <h4 className="font-medium">{s.title}</h4>
-                      {s.duration_min != null && (
-                        <span className="text-muted-foreground text-xs">
-                          {s.duration_min} min
-                        </span>
+                  <span className="bg-primary text-primary-foreground absolute -left-[33px] flex size-6 items-center justify-center rounded-full text-xs font-semibold">
+                    {s.step_order}
+                  </span>
+                  <div className="bg-card hover:bg-muted/30 flex items-start justify-between gap-3 rounded-md border p-3 transition">
+                    <div className="flex-1">
+                      <div className="flex items-baseline gap-2">
+                        <h4 className="font-medium">{s.title}</h4>
+                        {s.duration_min != null && (
+                          <span className="text-muted-foreground flex items-center gap-1 text-xs">
+                            <Clock className="size-3" />
+                            {s.duration_min} min
+                          </span>
+                        )}
+                      </div>
+                      {s.description && (
+                        <p className="text-muted-foreground mt-1 text-sm">
+                          {s.description}
+                        </p>
                       )}
                     </div>
-                    {s.description && (
-                      <p className="text-muted-foreground mt-1 text-sm">
-                        {s.description}
-                      </p>
-                    )}
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      className="opacity-0 group-hover:opacity-100"
+                      onClick={() => {
+                        if (confirm(`¿Eliminar paso #${s.step_order}?`))
+                          remove.mutate(s.id)
+                      }}
+                    >
+                      <Trash2 className="size-3.5" />
+                    </Button>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    onClick={() => remove.mutate(s.id)}
-                  >
-                    <Trash2 className="size-3.5" />
-                  </Button>
                 </li>
               ))}
             </ol>
