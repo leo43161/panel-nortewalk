@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { ImageDropzone } from "@/components/ui/image-dropzone"
 import {
   Select,
   SelectContent,
@@ -201,14 +202,13 @@ function CreateForm() {
               name="logo_url"
               render={({ field }) => (
                 <FormItem className="md:col-span-2">
-                  <FormLabel>Logo (link a la imagen)</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="url"
-                      placeholder="https://…"
-                      {...field}
-                    />
-                  </FormControl>
+                  <FormLabel>Logo o foto</FormLabel>
+                  <ImageDropzone
+                    value={field.value}
+                    onChange={(url) => field.onChange(url)}
+                    subdir="providers"
+                    label="Aparece junto a sus experiencias en el sitio."
+                  />
                   <FormMessage />
                 </FormItem>
               )}
@@ -465,10 +465,14 @@ function EditForm({ initial }: { initial: Provider }) {
               name="logo_url"
               render={({ field }) => (
                 <FormItem className="md:col-span-2">
-                  <FormLabel>Logo (link a la imagen)</FormLabel>
-                  <FormControl>
-                    <Input type="url" placeholder="https://…" {...field} />
-                  </FormControl>
+                  <FormLabel>Logo o foto</FormLabel>
+                  <ImageDropzone
+                    value={field.value}
+                    onChange={(url) => field.onChange(url)}
+                    subdir="providers"
+                    providerId={Number(initial.id)}
+                    label="Aparece junto a sus experiencias en el sitio."
+                  />
                   <FormMessage />
                 </FormItem>
               )}

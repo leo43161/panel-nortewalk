@@ -168,3 +168,11 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+/* El reset de Tailwind (img max-width:100%) achica los mosaicos de Leaflet a 0. */
+.leaflet-container img {
+  max-width: none;
+}
+.leaflet-container {
+  font-family: inherit;
+}

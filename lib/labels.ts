@@ -101,28 +101,29 @@ export const PROVINCES = [
  * Ciudades conocidas. En la DB se guarda el slug (lo usa el sitio para filtrar);
  * en pantalla se muestra el nombre. Si falta alguna, se elige "Otra ciudad".
  */
-export const CITIES: { slug: string; name: string; province: string }[] = [
-  { slug: "san-miguel-de-tucuman", name: "San Miguel de Tucumán", province: "Tucumán" },
-  { slug: "yerba-buena", name: "Yerba Buena", province: "Tucumán" },
-  { slug: "san-javier", name: "San Javier", province: "Tucumán" },
-  { slug: "villa-nougues", name: "Villa Nougués", province: "Tucumán" },
-  { slug: "raco", name: "Raco", province: "Tucumán" },
-  { slug: "tafi-viejo", name: "Tafí Viejo", province: "Tucumán" },
-  { slug: "tafi-del-valle", name: "Tafí del Valle", province: "Tucumán" },
-  { slug: "el-mollar", name: "El Mollar", province: "Tucumán" },
-  { slug: "amaicha-del-valle", name: "Amaicha del Valle", province: "Tucumán" },
-  { slug: "el-cadillal", name: "El Cadillal", province: "Tucumán" },
-  { slug: "salta", name: "Salta", province: "Salta" },
-  { slug: "cafayate", name: "Cafayate", province: "Salta" },
-  { slug: "cachi", name: "Cachi", province: "Salta" },
-  { slug: "san-salvador-de-jujuy", name: "San Salvador de Jujuy", province: "Jujuy" },
-  { slug: "purmamarca", name: "Purmamarca", province: "Jujuy" },
-  { slug: "tilcara", name: "Tilcara", province: "Jujuy" },
-  { slug: "humahuaca", name: "Humahuaca", province: "Jujuy" },
-  { slug: "catamarca", name: "Catamarca", province: "Catamarca" },
-  { slug: "santiago-del-estero", name: "Santiago del Estero", province: "Santiago del Estero" },
-  { slug: "termas-de-rio-hondo", name: "Termas de Río Hondo", province: "Santiago del Estero" },
-  { slug: "la-rioja", name: "La Rioja", province: "La Rioja" },
+/** lat/lng = centro aproximado: solo para abrir el mapa ahí. */
+export const CITIES: { slug: string; name: string; province: string; lat: number; lng: number }[] = [
+  { slug: "san-miguel-de-tucuman", name: "San Miguel de Tucumán", province: "Tucumán", lat: -26.8305, lng: -65.2038 },
+  { slug: "yerba-buena", name: "Yerba Buena", province: "Tucumán", lat: -26.8167, lng: -65.3167 },
+  { slug: "san-javier", name: "San Javier", province: "Tucumán", lat: -26.785, lng: -65.37 },
+  { slug: "villa-nougues", name: "Villa Nougués", province: "Tucumán", lat: -26.856, lng: -65.372 },
+  { slug: "raco", name: "Raco", province: "Tucumán", lat: -26.665, lng: -65.44 },
+  { slug: "tafi-viejo", name: "Tafí Viejo", province: "Tucumán", lat: -26.732, lng: -65.259 },
+  { slug: "tafi-del-valle", name: "Tafí del Valle", province: "Tucumán", lat: -26.852, lng: -65.709 },
+  { slug: "el-mollar", name: "El Mollar", province: "Tucumán", lat: -26.939, lng: -65.708 },
+  { slug: "amaicha-del-valle", name: "Amaicha del Valle", province: "Tucumán", lat: -26.594, lng: -65.92 },
+  { slug: "el-cadillal", name: "El Cadillal", province: "Tucumán", lat: -26.635, lng: -65.205 },
+  { slug: "salta", name: "Salta", province: "Salta", lat: -24.7829, lng: -65.4122 },
+  { slug: "cafayate", name: "Cafayate", province: "Salta", lat: -26.073, lng: -65.976 },
+  { slug: "cachi", name: "Cachi", province: "Salta", lat: -25.12, lng: -66.164 },
+  { slug: "san-salvador-de-jujuy", name: "San Salvador de Jujuy", province: "Jujuy", lat: -24.1858, lng: -65.2995 },
+  { slug: "purmamarca", name: "Purmamarca", province: "Jujuy", lat: -23.745, lng: -65.499 },
+  { slug: "tilcara", name: "Tilcara", province: "Jujuy", lat: -23.577, lng: -65.396 },
+  { slug: "humahuaca", name: "Humahuaca", province: "Jujuy", lat: -23.205, lng: -65.35 },
+  { slug: "catamarca", name: "Catamarca", province: "Catamarca", lat: -28.4696, lng: -65.7795 },
+  { slug: "santiago-del-estero", name: "Santiago del Estero", province: "Santiago del Estero", lat: -27.7951, lng: -64.2615 },
+  { slug: "termas-de-rio-hondo", name: "Termas de Río Hondo", province: "Santiago del Estero", lat: -27.493, lng: -64.86 },
+  { slug: "la-rioja", name: "La Rioja", province: "La Rioja", lat: -29.4131, lng: -66.8558 },
 ]
 
 /** "san-miguel-de-tucuman" -> "San Miguel de Tucumán" (o capitaliza si no la conoce). */

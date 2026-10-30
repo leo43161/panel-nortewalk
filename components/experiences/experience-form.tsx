@@ -11,6 +11,7 @@ import {
   ExternalLink,
   HandCoins,
   Loader2,
+  LocateFixed,
   MapPin,
   RotateCcw,
   Save,
@@ -60,6 +61,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { LocationMap } from "@/components/experiences/location-map"
 
 /* =====================================================================
  * Formulario único de experiencia: "Nueva experiencia" y la pestaña
@@ -765,6 +767,30 @@ function WhereSection({ form }: { form: ExpForm }) {
 
   // Se interpreta al pegar, al salir del campo o con Enter; nunca a mitad de tipeo
   // (con "-65.3748" a medio escribir ya matchearía "-6").
+  const pin = lat != null && lng != null ? { lat, lng } : null
+  const cityInfo = CITIES.find((c) => c.slug === city)
+  const cityCenter = React.useMemo(
+    () => (cityInfo ? { lat: cityInfo.lat, lng: cityInfo.lng } : { lat: -26.8305, lng: -65.2038 }),
+    [cityInfo]
+  )
+  const [locating, setLocating] = React.useState(false)
+  const locateMe = () => {
+    if (!navigator.geolocation) return toast.error("Este dispositivo no comparte la ubicación")
+    setLocating(true)
+    navigator.geolocation.getCurrentPosition(
+      (p) => {
+        set("latitude", +p.coords.latitude.toFixed(6))
+        set("longitude", +p.coords.longitude.toFixed(6))
+        setLocating(false)
+      },
+      () => {
+        toast.error("No pudimos leer tu ubicación. Marcá el punto en el mapa.")
+        setLocating(false)
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    )
+  }
+
   const applyMap = (text: string) => {
     const pos = parseMapsLocation(text)
     if (!pos) return false
@@ -859,25 +885,37 @@ function WhereSection({ form }: { form: ExpForm }) {
       />
 
       <div className="grid gap-2">
-        <span className="text-sm font-medium">Ubicación en el mapa</span>
-        {lat != null && lng != null ? (
-          <div className="bg-muted/40 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border px-3 py-2 text-sm">
-            <MapPin className="text-primary size-4" />
-            <span className="font-mono text-xs">
-              {lat.toFixed(5)}, {lng.toFixed(5)}
-            </span>
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <span className="text-sm font-medium">Punto exacto en el mapa</span>
+          <Button type="button" variant="outline" size="sm" onClick={locateMe} disabled={locating}>
+            {locating ? <Loader2 className="animate-spin" /> : <LocateFixed />}
+            Usar mi ubicación
+          </Button>
+        </div>
+        <LocationMap
+          value={pin}
+          center={cityCenter}
+          onChange={(pos) => {
+            set("latitude", pos.lat)
+            set("longitude", pos.lng)
+          }}
+        />
+        {pin ? (
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+            <MapPin className="text-highlight size-4" />
+            <span className="text-muted-foreground">Arrastrá el pin para ajustarlo.</span>
             <a
-              href={`https://www.google.com/maps?q=${lat},${lng}`}
+              href={`https://www.google.com/maps?q=${pin.lat},${pin.lng}`}
               target="_blank"
               rel="noopener"
-              className="text-primary inline-flex items-center gap-1 text-xs hover:underline"
+              className="text-primary inline-flex items-center gap-1 font-medium hover:underline"
             >
-              Ver en Google Maps <ExternalLink className="size-3" />
+              Ver en Google Maps <ExternalLink className="size-3.5" />
             </a>
             <Button
               type="button"
               variant="ghost"
-              size="xs"
+              size="sm"
               className="ml-auto"
               onClick={() => {
                 set("latitude", null)
@@ -885,11 +923,17 @@ function WhereSection({ form }: { form: ExpForm }) {
               }}
             >
               <X />
-              Quitar
+              Quitar pin
             </Button>
           </div>
         ) : (
-          <>
+          <p className="text-muted-foreground text-sm">
+            Tocá el mapa donde se juntan. Es opcional, pero el turista ve el botón “Cómo llegar”.
+          </p>
+        )}
+        <details className="text-sm">
+          <summary className="text-muted-foreground hover:text-foreground w-fit">¿Tenés el link de Google Maps? Pegalo acá</summary>
+          <div className="mt-2 grid gap-1.5">
             <Input
               value={mapInput}
               onChange={(e) => setMapInput(e.target.value)}
@@ -903,17 +947,15 @@ function WhereSection({ form }: { form: ExpForm }) {
                   applyMap(mapInput)
                 }
               }}
-              placeholder="Pegá acá el link de Google Maps o las coordenadas"
+              placeholder="https://www.google.com/maps/… o -26.8305, -65.2038"
             />
-            <p className="text-muted-foreground text-xs">
-              {!mapInput
-                ? "Opcional, pero ayuda: el turista ve el botón “Cómo llegar”."
-                : parseMapsLocation(mapInput)
-                  ? "Apretá Enter para usar esta ubicación."
-                  : "No encontré coordenadas. En Google Maps: click derecho sobre el punto → copiá los números que aparecen arriba (ej: -26.8305, -65.2038) y pegalos acá."}
-            </p>
-          </>
-        )}
+            {mapInput && !parseMapsLocation(mapInput) && (
+              <p className="text-muted-foreground text-xs">
+                No encontré coordenadas en ese link (los cortos tipo maps.app.goo.gl no las traen). Marcá el punto en el mapa.
+              </p>
+            )}
+          </div>
+        </details>
       </div>
     </Section>
   )
