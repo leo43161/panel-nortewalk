@@ -20,6 +20,7 @@ import {
 } from "lucide-react"
 
 import { api, apiErrorMessage } from "@/lib/api"
+import { VERTICAL_LABEL, cityLabel } from "@/lib/labels"
 import { cn, formatDate, daysUntil } from "@/lib/utils"
 import type {
   ApiResponse,
@@ -58,8 +59,8 @@ const EVENT_LABELS: Record<SubscriptionEventType, string> = {
   manual_adjustment: "Ajuste",
   suspension: "Suspensión",
   reactivation: "Reactivación",
-  trial_start: "Inicio trial",
-  trial_end: "Fin trial",
+  trial_start: "Inicio de prueba",
+  trial_end: "Fin de prueba",
 }
 
 const EVENT_BADGE: Record<SubscriptionEventType, string> = {
@@ -192,7 +193,7 @@ export function ProviderDetail({ id }: { id: number }) {
           className={buttonVariants({ variant: "ghost", size: "sm" })}
         >
           <ChevronLeft className="size-4" />
-          Volver a proveedores
+          Proveedores
         </Link>
         <Link
           href={`/providers/${p.id}/edit`}
@@ -208,19 +209,12 @@ export function ProviderDetail({ id }: { id: number }) {
           <ProviderAvatar provider={p} />
           <div className="space-y-1.5">
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="text-2xl font-bold tracking-tight">
+              <h1 className="text-2xl font-semibold tracking-tight">
                 {p.business_name}
               </h1>
               <StatusBadge status={p.status} />
             </div>
-            <p className="text-muted-foreground text-sm">
-              {p.contact_name}
-              <span className="mx-1.5">·</span>
-              <span className="text-xs">
-                slug:{" "}
-                <code className="bg-muted rounded px-1 py-0.5">{p.slug}</code>
-              </span>
-            </p>
+            <p className="text-muted-foreground text-sm">{p.contact_name}</p>
             <div className="text-muted-foreground flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
               <a
                 href={`mailto:${p.email}`}
@@ -243,7 +237,7 @@ export function ProviderDetail({ id }: { id: number }) {
               )}
               <span className="inline-flex items-center gap-1.5">
                 <MapPin className="size-3.5" />
-                {p.city}, {p.province}
+                {cityLabel(p.city)}, {p.province}
               </span>
             </div>
           </div>
@@ -292,14 +286,14 @@ export function ProviderDetail({ id }: { id: number }) {
           <CardHeader className="pb-2">
             <CardDescription className="flex items-center gap-1.5">
               <MessageSquare className="size-3.5" />
-              Leads totales
+              Reservas totales
             </CardDescription>
             <CardTitle className="text-xl">
               {statsQ.isLoading ? "…" : Number(stats?.total_leads ?? 0)}
             </CardTitle>
           </CardHeader>
           <CardContent className="text-muted-foreground text-sm">
-            Últimos 30d: {Number(stats?.leads_last_30d ?? 0)}
+            {Number(stats?.leads_last_30d ?? 0)} en los últimos 30 días
           </CardContent>
         </Card>
         <Card>
@@ -318,14 +312,14 @@ export function ProviderDetail({ id }: { id: number }) {
             </CardTitle>
           </CardHeader>
           <CardContent className="text-muted-foreground text-sm">
-            Activas / total
+            Visibles / cargadas
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardDescription>Fee mensual</CardDescription>
+            <CardDescription>Cuota mensual</CardDescription>
             <CardTitle className="text-xl">
-              USD {Number(p.monthly_fee_usd).toFixed(2)}
+              US$ {Number(p.monthly_fee_usd).toLocaleString("es-AR", { minimumFractionDigits: 2 })}
             </CardTitle>
           </CardHeader>
           <CardContent className="text-muted-foreground text-sm">
@@ -428,10 +422,10 @@ export function ProviderDetail({ id }: { id: number }) {
               <TableHeader>
                 <TableRow>
                   <TableHead>Título</TableHead>
-                  <TableHead>Vertical</TableHead>
                   <TableHead>Tipo</TableHead>
-                  <TableHead className="text-right">Leads</TableHead>
-                  <TableHead>Estado</TableHead>
+                  <TableHead>Cobro</TableHead>
+                  <TableHead className="text-right">Reservas</TableHead>
+                  <TableHead>En el sitio</TableHead>
                   <TableHead></TableHead>
                 </TableRow>
               </TableHeader>
@@ -446,11 +440,11 @@ export function ProviderDetail({ id }: { id: number }) {
                         {e.title}
                       </Link>
                       <div className="text-muted-foreground text-xs">
-                        {e.slug}
+                        {cityLabel(e.city)}
                       </div>
                     </TableCell>
-                    <TableCell className="capitalize">{e.vertical}</TableCell>
-                    <TableCell className="capitalize">{e.type}</TableCell>
+                    <TableCell>{VERTICAL_LABEL[e.vertical]}</TableCell>
+                    <TableCell>{e.type === "free" ? "A la gorra" : "Precio fijo"}</TableCell>
                     <TableCell className="text-right tabular-nums">
                       {Number(e.total_leads ?? 0)}
                     </TableCell>
@@ -460,10 +454,10 @@ export function ProviderDetail({ id }: { id: number }) {
                           variant="secondary"
                           className="bg-emerald-100 text-emerald-800 ring-1 ring-inset ring-emerald-200 dark:bg-emerald-900/40 dark:text-emerald-200"
                         >
-                          Activa
+                          Visible
                         </Badge>
                       ) : (
-                        <Badge variant="outline">Inactiva</Badge>
+                        <Badge variant="outline">Oculta</Badge>
                       )}
                     </TableCell>
                     <TableCell className="text-right">
@@ -490,7 +484,7 @@ export function ProviderDetail({ id }: { id: number }) {
         <CardHeader>
           <CardTitle className="text-base">Historial de suscripción</CardTitle>
           <CardDescription>
-            Pagos, suspensiones y cambios de estado. Últimos {events.length}.
+            Pagos, pausas y cambios de estado.
           </CardDescription>
         </CardHeader>
         <CardContent>

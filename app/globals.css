@@ -7,9 +7,10 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-geist-sans);
+  --font-sans: var(--font-body);
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-heading: var(--font-display);
+  --font-logo: var(--font-wordmark);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -42,6 +43,9 @@
   --color-brand: var(--brand);
   --color-brand-foreground: var(--brand-foreground);
   --color-cream: var(--cream);
+  --color-highlight: var(--highlight);
+  --color-highlight-foreground: var(--highlight-foreground);
+  --color-highlight-soft: var(--highlight-soft);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -52,85 +56,90 @@
 }
 
 /*
- * Norte Walk identity palette
- *  - Forest green  #40513B  (primary, sidebar)
- *  - Sun orange    #E67E22  (accent, CTAs, highlight)
- *  - Cream         #E5D9B6  (soft surfaces, sidebar text)
- *  - Off-white     #FAF7F0  (app background)
+ * Paleta "Norte Cálido" (la misma del sitio público).
+ *  primary   = verde de marca #40513B
+ *  highlight = naranja de marca #E67E22 (atención, "nuevo", la acción del momento)
+ *  accent    = hover suave de menús (convención shadcn), NO el naranja
  */
 :root {
-  --background: #FAF7F0;
-  --foreground: #2A2E27;
+  --background: #FAF6EC;
+  --foreground: #2B2A26;
   --card: #FFFFFF;
-  --card-foreground: #2A2E27;
+  --card-foreground: #2B2A26;
   --popover: #FFFFFF;
-  --popover-foreground: #2A2E27;
+  --popover-foreground: #2B2A26;
   --primary: #40513B;
-  --primary-foreground: #FAF7F0;
-  --secondary: #E5D9B6;
-  --secondary-foreground: #40513B;
-  --muted: #F1ECDD;
-  --muted-foreground: #6B6F64;
-  --accent: #E67E22;
-  --accent-foreground: #FFFFFF;
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: #E4DECB;
-  --input: #E4DECB;
+  --primary-foreground: #FAF6EC;
+  --secondary: #F1EAD7;
+  --secondary-foreground: #36462F;
+  --muted: #F3EEE1;
+  --muted-foreground: #66635A;
+  --accent: #F1EAD7;
+  --accent-foreground: #28331F;
+  --highlight: #E67E22;
+  --highlight-foreground: #A8410A;
+  --highlight-soft: #FDF0E2;
+  --destructive: #B42318;
+  --border: #E6DFCC;
+  --input: #DCD3BC;
   --ring: #E67E22;
   --brand: #40513B;
-  --brand-foreground: #FAF7F0;
+  --brand-foreground: #FAF6EC;
   --cream: #E5D9B6;
   --chart-1: #40513B;
   --chart-2: #E67E22;
-  --chart-3: #9DA987;
+  --chart-3: #859476;
   --chart-4: #E5D9B6;
-  --chart-5: #6B6F64;
-  --radius: 0.625rem;
-  --sidebar: #40513B;
+  --chart-5: #6E6B62;
+  --radius: 0.75rem;
+  --sidebar: #36462F;
   --sidebar-foreground: #E5D9B6;
-  --sidebar-primary: #E67E22;
-  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-primary: #EF9540;
+  --sidebar-primary-foreground: #28331F;
   --sidebar-accent: rgba(229, 217, 182, 0.12);
-  --sidebar-accent-foreground: #FAF7F0;
-  --sidebar-border: rgba(229, 217, 182, 0.15);
-  --sidebar-ring: #E67E22;
+  --sidebar-accent-foreground: #FAF6EC;
+  --sidebar-border: rgba(229, 217, 182, 0.14);
+  --sidebar-ring: #EF9540;
 }
 
 .dark {
-  --background: #1F2620;
-  --foreground: #E5D9B6;
-  --card: #2A332B;
-  --card-foreground: #E5D9B6;
-  --popover: #2A332B;
-  --popover-foreground: #E5D9B6;
-  --primary: #E67E22;
-  --primary-foreground: #1F2620;
-  --secondary: #40513B;
+  --background: #171C16;
+  --foreground: #ECE6D6;
+  --card: #20271F;
+  --card-foreground: #ECE6D6;
+  --popover: #262E25;
+  --popover-foreground: #ECE6D6;
+  --primary: #CFD8C4;
+  --primary-foreground: #1A2117;
+  --secondary: #2C3629;
   --secondary-foreground: #E5D9B6;
-  --muted: #2A332B;
-  --muted-foreground: #9DA987;
-  --accent: #E67E22;
-  --accent-foreground: #1F2620;
-  --destructive: oklch(0.704 0.191 22.216);
+  --muted: #262E25;
+  --muted-foreground: #A9A595;
+  --accent: #2F3A2C;
+  --accent-foreground: #FAF6EC;
+  --highlight: #EF9540;
+  --highlight-foreground: #F5B173;
+  --highlight-soft: rgba(239, 149, 64, 0.14);
+  --destructive: #F87171;
   --border: rgba(229, 217, 182, 0.12);
-  --input: rgba(229, 217, 182, 0.15);
-  --ring: #E67E22;
-  --brand: #E67E22;
-  --brand-foreground: #1F2620;
+  --input: rgba(229, 217, 182, 0.18);
+  --ring: #EF9540;
+  --brand: #EF9540;
+  --brand-foreground: #1A2117;
   --cream: #E5D9B6;
-  --chart-1: #E67E22;
-  --chart-2: #E5D9B6;
-  --chart-3: #9DA987;
-  --chart-4: #40513B;
-  --chart-5: #6B6F64;
-  --sidebar: #1A201B;
+  --chart-1: #CFD8C4;
+  --chart-2: #EF9540;
+  --chart-3: #859476;
+  --chart-4: #556B4C;
+  --chart-5: #A9A595;
+  --sidebar: #12170F;
   --sidebar-foreground: #E5D9B6;
-  --sidebar-primary: #E67E22;
-  --sidebar-primary-foreground: #1F2620;
+  --sidebar-primary: #EF9540;
+  --sidebar-primary-foreground: #1A2117;
   --sidebar-accent: rgba(229, 217, 182, 0.08);
-  --sidebar-accent-foreground: #FAF7F0;
+  --sidebar-accent-foreground: #FAF6EC;
   --sidebar-border: rgba(229, 217, 182, 0.1);
-  --sidebar-ring: #E67E22;
+  --sidebar-ring: #EF9540;
 }
 
 @layer base {
@@ -142,5 +151,20 @@
   }
   html {
     @apply font-sans;
+    -webkit-tap-highlight-color: transparent;
+  }
+  h1, h2, h3 {
+    @apply font-heading;
+    text-wrap: balance;
+  }
+  button:not(:disabled), [role="button"]:not([aria-disabled="true"]), a[href], label[for], select {
+    cursor: pointer;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
   }
 }

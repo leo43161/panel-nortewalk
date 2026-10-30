@@ -21,6 +21,7 @@ import {
 import { toast } from "sonner"
 
 import { api, apiErrorMessage } from "@/lib/api"
+import { LOCALE_LABEL, VERTICAL_LABEL, VERTICAL_TONE } from "@/lib/labels"
 import { cn, formatDate } from "@/lib/utils"
 import {
   mailtoLink,
@@ -28,7 +29,7 @@ import {
   toWhatsAppDigits,
   whatsappLink,
 } from "@/lib/leads"
-import type { ApiResponse, Lead, LeadStatus, Vertical } from "@/types"
+import type { ApiResponse, Lead, LeadStatus } from "@/types"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Badge } from "@/components/ui/badge"
@@ -52,14 +53,6 @@ import {
   LeadStatusBadge,
 } from "@/components/leads/status-badge"
 
-const VERTICAL_STYLES: Record<Vertical, string> = {
-  fwt: "bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300",
-  adventure:
-    "bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300",
-  experience:
-    "bg-violet-100 text-violet-800 dark:bg-violet-950 dark:text-violet-300",
-  gastronomy: "bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300",
-}
 
 const DAYS_LONG = [
   "Domingo",
@@ -118,7 +111,7 @@ export function LeadDetail({ id }: { id: number }) {
   if (query.isError || !query.data) {
     return (
       <Alert variant="destructive">
-        <AlertTitle>No se pudo cargar el lead</AlertTitle>
+        <AlertTitle>No se pudo cargar la reserva</AlertTitle>
         <AlertDescription>
           {apiErrorMessage(query.error, "Lead no encontrado")}
         </AlertDescription>
@@ -170,26 +163,20 @@ export function LeadDetail({ id }: { id: number }) {
             <div className="flex flex-wrap items-center gap-2">
               <LeadStatusBadge status={lead.status} />
               {lead.vertical && (
-                <Badge
-                  variant="secondary"
-                  className={cn(
-                    "capitalize",
-                    VERTICAL_STYLES[lead.vertical]
-                  )}
-                >
-                  {lead.vertical}
+                <Badge variant="secondary" className={VERTICAL_TONE[lead.vertical]}>
+                  {VERTICAL_LABEL[lead.vertical]}
                 </Badge>
               )}
               {lead.type && (
-                <Badge variant="outline" className="capitalize">
-                  {lead.type === "free" ? "Gratis/Gorra" : "Pago"}
+                <Badge variant="outline">
+                  {lead.type === "free" ? "A la gorra" : "Precio fijo"}
                 </Badge>
               )}
-              <Badge variant="outline" className="uppercase">
-                {lead.preferred_locale}
+              <Badge variant="outline">
+                {LOCALE_LABEL[lead.preferred_locale] ?? lead.preferred_locale}
               </Badge>
             </div>
-            <h1 className="text-2xl font-bold tracking-tight">
+            <h1 className="text-2xl font-semibold tracking-tight">
               {lead.tourist_name}
             </h1>
             <p className="text-muted-foreground text-sm">
@@ -300,7 +287,7 @@ export function LeadDetail({ id }: { id: number }) {
                 </span>
               </Row>
             )}
-            <Row icon={<Users className="size-4" />} label="Pax">
+            <Row icon={<Users className="size-4" />} label="Personas">
               <span className="font-medium tabular-nums">{lead.pax}</span>
             </Row>
             {lead.schedule_id != null && lead.day_of_week != null && (
@@ -348,11 +335,6 @@ export function LeadDetail({ id }: { id: number }) {
                   {lead.experience_title ?? `#${lead.experience_id}`}
                 </Link>
                 <p className="text-muted-foreground mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
-                  {lead.experience_slug && (
-                    <code className="bg-muted rounded px-1">
-                      {lead.experience_slug}
-                    </code>
-                  )}
                   {lead.category && <span>· {lead.category}</span>}
                   {lead.city && (
                     <span className="flex items-center gap-1">

@@ -25,7 +25,14 @@ api.interceptors.request.use((config) => {
 })
 
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // La API manda el total suelto ({ data, total }) y el panel lo lee en meta.total.
+    const body = response.data
+    if (body && typeof body === "object" && "total" in body && !body.meta) {
+      body.meta = { total: Number(body.total) }
+    }
+    return response
+  },
   (error: AxiosError<ApiResponse<unknown>>) => {
     if (error.response?.status === 401 && typeof window !== "undefined") {
       clearToken()

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="NorteWalk">
+  <rect width="512" height="512" rx="112.64" fill="#40513B"></rect>
+  <g transform="translate(84.74 77.26) scale(0.7094)">
+    <circle cx="349.678" cy="140.613" r="40.211" fill="#E67E22"></circle>
+  <path d="M 24.889 403.536 L 148.617 217.945 L 241.414 295.274 L 318.745 202.477 L 457.94 403.536" stroke="#E5D9B6" stroke-width="22" fill="none" stroke-linecap="round" stroke-linejoin="round"></path>
+  </g>
+</svg>

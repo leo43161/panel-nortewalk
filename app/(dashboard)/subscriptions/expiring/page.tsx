@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
+import { PageHeader } from "@/components/page"
 import { useQuery } from "@tanstack/react-query"
 import { Loader2 } from "lucide-react"
 
@@ -55,18 +56,14 @@ export default function ExpiringPage() {
   const rows = query.data ?? []
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-2">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Por vencer</h1>
-          <p className="text-muted-foreground text-sm">
-            Proveedores con suscripción o trial que vencen pronto.
-          </p>
-        </div>
-        <div className="grid gap-1">
-          <label className="text-muted-foreground text-xs">Ventana</label>
+    <div>
+      <PageHeader
+        back={{ href: "/providers", label: "Proveedores" }}
+        title="Por vencer"
+        description="Proveedores cuya suscripción o prueba gratis termina pronto."
+        actions={
           <Select value={days} onValueChange={(v) => setDays(v ?? "7")}>
-            <SelectTrigger className="w-36">
+            <SelectTrigger className="w-40" aria-label="Ventana de tiempo">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -77,8 +74,8 @@ export default function ExpiringPage() {
               ))}
             </SelectContent>
           </Select>
-        </div>
-      </div>
+        }
+      />
 
       {query.isError && (
         <Alert variant="destructive">

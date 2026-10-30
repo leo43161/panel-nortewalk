@@ -10,6 +10,8 @@ import { toast } from "sonner"
 import { Loader2, Save } from "lucide-react"
 
 import { api, apiErrorMessage } from "@/lib/api"
+import { PROVINCES } from "@/lib/labels"
+import { slugify } from "@/lib/utils"
 import type { ApiResponse, Provider } from "@/types"
 
 import { Button } from "@/components/ui/button"
@@ -41,12 +43,17 @@ import {
 
 const slugRe = /^[a-z0-9]+(?:-[a-z0-9]+)*$/
 const e164Re = /^\+[1-9]\d{6,14}$/
+/** Acepta "+54 9 381 555-1234" y guarda "+5493815551234". */
+const whatsapp = z
+  .string()
+  .transform((s) => s.replace(/[\s().-]/g, ""))
+  .pipe(z.string().regex(e164Re, "Con + y código de país, ej: +54 9 381 555 1234"))
 
 const baseFields = {
   business_name: z.string().min(2, "Mínimo 2 caracteres"),
   contact_name: z.string().min(2, "Mínimo 2 caracteres"),
   email: z.string().email("Email inválido"),
-  whatsapp_e164: z.string().regex(e164Re, "Formato E.164, ej: +5493812345678"),
+  whatsapp_e164: whatsapp,
   city: z.string().min(2, "Mínimo 2 caracteres"),
   province: z.string().min(1).default("Tucumán"),
   country: z.string().length(2).default("AR"),
@@ -70,25 +77,6 @@ const editSchema = z.object({
   notes_admin: z.string().max(2000).optional().or(z.literal("")),
 })
 
-const COUNTRIES = [
-  { value: "AR", label: "Argentina" },
-  { value: "CL", label: "Chile" },
-  { value: "BO", label: "Bolivia" },
-  { value: "BR", label: "Brasil" },
-  { value: "UY", label: "Uruguay" },
-  { value: "PY", label: "Paraguay" },
-  { value: "PE", label: "Perú" },
-]
-
-function slugify(s: string) {
-  return s
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 120)
-}
 
 type CreateIn = z.input<typeof createSchema>
 type CreateOut = z.output<typeof createSchema>
@@ -135,7 +123,7 @@ function CreateForm() {
   const businessName = form.watch("business_name")
   React.useEffect(() => {
     if (!slugTouched && businessName) {
-      form.setValue("slug", slugify(businessName), { shouldValidate: true })
+      form.setValue("slug", slugify(businessName, 120), { shouldValidate: true })
     }
   }, [businessName, slugTouched, form])
 
@@ -168,8 +156,7 @@ function CreateForm() {
           <CardHeader>
             <CardTitle>Datos del negocio</CardTitle>
             <CardDescription>
-              Identidad pública del proveedor. El slug se autogenera desde el
-              nombre, podés editarlo.
+              Cómo se ve en el sitio. La dirección se arma sola con el nombre.
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-2">
@@ -191,7 +178,7 @@ function CreateForm() {
               name="slug"
               render={({ field }) => (
                 <FormItem className="md:col-span-2">
-                  <FormLabel>Slug (URL pública)</FormLabel>
+                  <FormLabel>Dirección en el sitio</FormLabel>
                   <FormControl>
                     <Input
                       placeholder="tucu-walking"
@@ -203,8 +190,7 @@ function CreateForm() {
                     />
                   </FormControl>
                   <FormDescription>
-                    Aparece en URLs: <code>/p/{field.value || "tu-slug"}</code>.
-                    Sólo minúsculas, números y guiones.
+                    …/p/{field.value || "nombre"} · solo minúsculas, números y guiones.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -215,7 +201,7 @@ function CreateForm() {
               name="logo_url"
               render={({ field }) => (
                 <FormItem className="md:col-span-2">
-                  <FormLabel>Logo URL</FormLabel>
+                  <FormLabel>Logo (link a la imagen)</FormLabel>
                   <FormControl>
                     <Input
                       type="url"
@@ -293,10 +279,10 @@ function CreateForm() {
                 <FormItem className="md:col-span-2">
                   <FormLabel>WhatsApp</FormLabel>
                   <FormControl>
-                    <Input placeholder="+5493812345678" {...field} />
+                    <Input type="tel" placeholder="+54 9 381 555 1234" {...field} />
                   </FormControl>
                   <FormDescription>
-                    Formato E.164 con código de país, sin espacios.
+                    Con + y código de país. A este número le llegan las reservas.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -309,7 +295,7 @@ function CreateForm() {
           <CardHeader>
             <CardTitle>Ubicación</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-3">
+          <CardContent className="grid gap-4 md:grid-cols-2">
             <FormField
               control={form.control}
               name="city"
@@ -329,32 +315,16 @@ function CreateForm() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Provincia</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="country"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>País</FormLabel>
-                  <Select
-                    value={field.value}
-                    onValueChange={field.onChange}
-                  >
+                  <Select value={field.value} onValueChange={field.onChange}>
                     <FormControl>
-                      <SelectTrigger>
+                      <SelectTrigger className="w-full">
                         <SelectValue />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {COUNTRIES.map((c) => (
-                        <SelectItem key={c.value} value={c.value}>
-                          {c.label}
+                      {PROVINCES.map((p) => (
+                        <SelectItem key={p} value={p}>
+                          {p}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -370,8 +340,8 @@ function CreateForm() {
           <CardHeader>
             <CardTitle>Suscripción</CardTitle>
             <CardDescription>
-              Se crea en estado <code>trial</code> con los días indicados. Se
-              cobra US$ 10 / mes una vez activado.
+              Arranca con unos días de prueba gratis. Después se cobra US$ 10
+              por mes.
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-2">
@@ -390,7 +360,7 @@ function CreateForm() {
                       value={field.value as number}
                     />
                   </FormControl>
-                  <FormDescription>0 = sin trial</FormDescription>
+                  <FormDescription>0 = sin prueba gratis</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -484,20 +454,18 @@ function EditForm({ initial }: { initial: Provider }) {
               )}
             />
             <FormItem className="md:col-span-2">
-              <FormLabel>Slug</FormLabel>
+              <FormLabel>Dirección en el sitio</FormLabel>
               <FormControl>
-                <Input value={initial.slug} disabled readOnly />
+                <Input value={`…/p/${initial.slug}`} disabled readOnly />
               </FormControl>
-              <FormDescription>
-                No editable. Contactar soporte para cambiarlo.
-              </FormDescription>
+              <FormDescription>No se puede cambiar.</FormDescription>
             </FormItem>
             <FormField
               control={form.control}
               name="logo_url"
               render={({ field }) => (
                 <FormItem className="md:col-span-2">
-                  <FormLabel>Logo URL</FormLabel>
+                  <FormLabel>Logo (link a la imagen)</FormLabel>
                   <FormControl>
                     <Input type="url" placeholder="https://…" {...field} />
                   </FormControl>
@@ -559,10 +527,10 @@ function EditForm({ initial }: { initial: Provider }) {
                 <FormItem className="md:col-span-2">
                   <FormLabel>WhatsApp</FormLabel>
                   <FormControl>
-                    <Input placeholder="+5493812345678" {...field} />
+                    <Input type="tel" placeholder="+54 9 381 555 1234" {...field} />
                   </FormControl>
                   <FormDescription>
-                    Formato E.164 con código de país, sin espacios.
+                    Con + y código de país. A este número le llegan las reservas.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -575,7 +543,7 @@ function EditForm({ initial }: { initial: Provider }) {
           <CardHeader>
             <CardTitle>Ubicación</CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-4 md:grid-cols-3">
+          <CardContent className="grid gap-4 md:grid-cols-2">
             <FormField
               control={form.control}
               name="city"
@@ -595,29 +563,16 @@ function EditForm({ initial }: { initial: Provider }) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Provincia</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="country"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>País</FormLabel>
                   <Select value={field.value} onValueChange={field.onChange}>
                     <FormControl>
-                      <SelectTrigger>
+                      <SelectTrigger className="w-full">
                         <SelectValue />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {COUNTRIES.map((c) => (
-                        <SelectItem key={c.value} value={c.value}>
-                          {c.label}
+                      {PROVINCES.map((p) => (
+                        <SelectItem key={p} value={p}>
+                          {p}
                         </SelectItem>
                       ))}
                     </SelectContent>

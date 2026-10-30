@@ -156,9 +156,8 @@ export function PayDialog({
         <DialogHeader>
           <DialogTitle>Registrar pago</DialogTitle>
           <DialogDescription>
-            Suma los días al vencimiento. Si el proveedor está{" "}
-            <code>trial</code> o <code>suspended</code>, pasa a{" "}
-            <code>active</code>.
+            Suma los días al vencimiento. Si estaba en prueba o suspendido,
+            queda activo.
           </DialogDescription>
         </DialogHeader>
 

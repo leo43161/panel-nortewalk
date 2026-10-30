@@ -10,7 +10,7 @@ export default async function Page({
     <ExperienceEditor
       id={Number(id)}
       backHref="/provider/experiencias"
-      showFeaturedToggle={false}
+      isAdmin={false}
     />
   )
 }

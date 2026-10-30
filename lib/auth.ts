@@ -2,6 +2,8 @@ import { jwtDecode } from "jwt-decode"
 import type { JwtPayload, Role } from "@/types"
 
 const TOKEN_KEY = "nw_token"
+/** Se dispara al entrar/salir para que useAuth se actualice en toda la app. */
+export const AUTH_EVENT = "nw-auth"
 
 // Estructura cruda que firma el backend PHP (libs/auth.php JwtHandler::generateToken):
 // { iat, exp, data: { admin_id, email, role, provider_id } }
@@ -24,11 +26,13 @@ export function getToken(): string | null {
 export function setToken(token: string) {
   if (typeof window === "undefined") return
   localStorage.setItem(TOKEN_KEY, token)
+  window.dispatchEvent(new Event(AUTH_EVENT))
 }
 
 export function clearToken() {
   if (typeof window === "undefined") return
   localStorage.removeItem(TOKEN_KEY)
+  window.dispatchEvent(new Event(AUTH_EVENT))
 }
 
 export function decodeToken(token?: string | null): JwtPayload | null {

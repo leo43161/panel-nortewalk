@@ -29,56 +29,43 @@ function applyClass(resolved: Resolved) {
   root.style.colorScheme = resolved
 }
 
+const THEME_EVENT = "nw-theme"
+
+function subscribe(onChange: () => void) {
+  const mq = window.matchMedia("(prefers-color-scheme: dark)")
+  window.addEventListener(THEME_EVENT, onChange)
+  window.addEventListener("storage", onChange)
+  mq.addEventListener("change", onChange)
+  return () => {
+    window.removeEventListener(THEME_EVENT, onChange)
+    window.removeEventListener("storage", onChange)
+    mq.removeEventListener("change", onChange)
+  }
+}
+
+function storedPref(): ThemePref {
+  const v = window.localStorage.getItem(STORAGE_KEY)
+  return v === "light" || v === "dark" ? v : "system"
+}
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = React.useState<ThemePref>("system")
-  const [resolved, setResolved] = React.useState<Resolved>("light")
+  const theme = React.useSyncExternalStore(subscribe, storedPref, () => "system" as ThemePref)
+  const resolved = React.useSyncExternalStore(
+    subscribe,
+    () => (storedPref() === "system" ? systemPref() : (storedPref() as Resolved)),
+    () => "light" as Resolved
+  )
 
-  // Hidratar desde localStorage al montar
-  React.useEffect(() => {
-    const stored = (typeof window !== "undefined"
-      ? window.localStorage.getItem(STORAGE_KEY)
-      : null) as ThemePref | null
-    const initial: ThemePref =
-      stored === "light" || stored === "dark" || stored === "system"
-        ? stored
-        : "system"
-    setThemeState(initial)
-    const r = initial === "system" ? systemPref() : initial
-    setResolved(r)
-    applyClass(r)
-  }, [])
-
-  // Si el usuario eligió "system", reaccionar a cambios del SO
-  React.useEffect(() => {
-    if (theme !== "system" || typeof window === "undefined") return
-    const mq = window.matchMedia("(prefers-color-scheme: dark)")
-    const onChange = () => {
-      const r: Resolved = mq.matches ? "dark" : "light"
-      setResolved(r)
-      applyClass(r)
-    }
-    mq.addEventListener("change", onChange)
-    return () => mq.removeEventListener("change", onChange)
-  }, [theme])
+  React.useEffect(() => applyClass(resolved), [resolved])
 
   const setTheme = React.useCallback((t: ThemePref) => {
-    setThemeState(t)
-    if (typeof window !== "undefined") {
-      window.localStorage.setItem(STORAGE_KEY, t)
-    }
-    const r = t === "system" ? systemPref() : t
-    setResolved(r)
-    applyClass(r)
+    window.localStorage.setItem(STORAGE_KEY, t)
+    window.dispatchEvent(new Event(THEME_EVENT))
   }, [])
 
-  const value = React.useMemo(
-    () => ({ theme, resolved, setTheme }),
-    [theme, resolved, setTheme]
-  )
+  const value = React.useMemo(() => ({ theme, resolved, setTheme }), [theme, resolved, setTheme])
 
-  return (
-    <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
-  )
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>
 }
 
 export function useTheme(): ThemeContextValue {

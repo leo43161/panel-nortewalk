@@ -9,18 +9,12 @@ import {
   getCoreRowModel,
   useReactTable,
 } from "@tanstack/react-table"
-import {
-  Building2,
-  Eye,
-  Loader2,
-  Pencil,
-  Plus,
-  Search,
-  X,
-} from "lucide-react"
+import { AlarmClock, Building2, ChevronRight, Loader2, Plus, Search, X } from "lucide-react"
 
 import { api, apiErrorMessage } from "@/lib/api"
+import { cityLabel } from "@/lib/labels"
 import { cn, daysUntil, formatDate } from "@/lib/utils"
+import { PageHeader } from "@/components/page"
 import type { ApiResponse, Provider, ProviderStatus } from "@/types"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -127,7 +121,7 @@ export default function ProvidersPage() {
               >
                 {row.original.business_name}
               </Link>
-              <span className="text-muted-foreground truncate text-xs">
+              <span className="text-muted-foreground truncate text-sm">
                 {row.original.contact_name} · {row.original.email}
               </span>
             </div>
@@ -139,10 +133,8 @@ export default function ProvidersPage() {
         header: "Ciudad",
         cell: ({ row }) => (
           <div className="text-sm">
-            <div>{row.original.city}</div>
-            <div className="text-muted-foreground text-xs">
-              {row.original.province}
-            </div>
+            <div>{cityLabel(row.original.city)}</div>
+            <div className="text-muted-foreground">{row.original.province}</div>
           </div>
         ),
       },
@@ -166,35 +158,29 @@ export default function ProvidersPage() {
                 <div className="text-red-600 font-medium dark:text-red-400">
                   Vencido
                 </div>
-                <div className="text-muted-foreground text-xs">
-                  hace {Math.abs(days)}d
-                </div>
+                <div className="text-muted-foreground">hace {Math.abs(days)} días</div>
               </div>
             )
           if (days <= 7)
             return (
               <div className="text-sm">
                 <div className="text-amber-600 font-medium dark:text-amber-400">
-                  En {days}d
+                  {days === 0 ? "Hoy" : days === 1 ? "Mañana" : `En ${days} días`}
                 </div>
-                <div className="text-muted-foreground text-xs">
-                  {formatDate(row.original.paid_until)}
-                </div>
+                <div className="text-muted-foreground">{formatDate(row.original.paid_until)}</div>
               </div>
             )
           return (
             <div className="text-sm">
               <div>{formatDate(row.original.paid_until)}</div>
-              <div className="text-muted-foreground text-xs">
-                en {days}d
-              </div>
+              <div className="text-muted-foreground">en {days} días</div>
             </div>
           )
         },
       },
       {
         accessorKey: "total_experiences",
-        header: () => <div className="text-right">Exp.</div>,
+        header: () => <div className="text-right">Experiencias</div>,
         cell: ({ row }) => (
           <div className="text-right tabular-nums">
             {Number(row.original.total_experiences ?? 0)}
@@ -203,7 +189,7 @@ export default function ProvidersPage() {
       },
       {
         accessorKey: "total_leads",
-        header: () => <div className="text-right">Leads</div>,
+        header: () => <div className="text-right">Reservas</div>,
         cell: ({ row }) => (
           <div className="text-right tabular-nums">
             {Number(row.original.total_leads ?? 0)}
@@ -214,20 +200,13 @@ export default function ProvidersPage() {
         id: "actions",
         header: "",
         cell: ({ row }) => (
-          <div className="flex justify-end gap-1">
+          <div className="flex justify-end">
             <Link
               href={`/providers/${row.original.id}`}
               className={buttonVariants({ variant: "ghost", size: "icon-sm" })}
-              title="Ver detalle"
+              aria-label={`Ver ${row.original.business_name}`}
             >
-              <Eye className="size-4" />
-            </Link>
-            <Link
-              href={`/providers/${row.original.id}/edit`}
-              className={buttonVariants({ variant: "ghost", size: "icon-sm" })}
-              title="Editar"
-            >
-              <Pencil className="size-4" />
+              <ChevronRight />
             </Link>
           </div>
         ),
@@ -247,25 +226,26 @@ export default function ProvidersPage() {
   const filtersActive = debouncedSearch !== "" || statusFilter !== "all"
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Proveedores</h1>
-          <p className="text-muted-foreground text-sm">
-            {query.isFetching
-              ? "Cargando…"
-              : `${total} ${total === 1 ? "proveedor" : "proveedores"} en total`}
-            {totalPages > 1 && ` — página ${page + 1} de ${totalPages}`}
-          </p>
-        </div>
-        <Link href="/providers/new" className={buttonVariants({ size: "sm" })}>
-          <Plus className="size-4" />
-          Nuevo proveedor
-        </Link>
-      </div>
+    <div>
+      <PageHeader
+        title="Proveedores"
+        description={query.isLoading ? "Cargando…" : `${total} ${total === 1 ? "guía o empresa" : "guías y empresas"} en Norte Walk.`}
+        actions={
+          <>
+            <Link href="/subscriptions/expiring" className={buttonVariants({ variant: "outline" })}>
+              <AlarmClock />
+              Por vencer
+            </Link>
+            <Link href="/providers/new" className={buttonVariants()}>
+              <Plus />
+              Nuevo proveedor
+            </Link>
+          </>
+        }
+      />
 
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="relative w-full max-w-xs">
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <div className="relative w-full sm:max-w-xs">
           <Search className="text-muted-foreground pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
           <Input
             value={search}
@@ -311,7 +291,7 @@ export default function ProvidersPage() {
         </Alert>
       )}
 
-      <div className="overflow-hidden rounded-md border">
+      <div className="bg-card overflow-x-auto rounded-xl border">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((hg) => (

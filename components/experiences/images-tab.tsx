@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import {
   ImagePlus,
   ImageIcon,
@@ -15,7 +15,8 @@ import { toast } from "sonner"
 
 import { api, apiErrorMessage, uploadImage as uploadImageHttp } from "@/lib/api"
 import { cn } from "@/lib/utils"
-import type { ApiResponse, ExperienceImage } from "@/types"
+import type { ApiResponse } from "@/types"
+import { useImages } from "@/components/experiences/queries"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -47,23 +48,12 @@ export function ImagesTab({ experienceId }: { experienceId: number }) {
   const [dragOver, setDragOver] = React.useState(false)
   const fileRef = React.useRef<HTMLInputElement>(null)
 
-  const list = useQuery({
-    queryKey: ["images", experienceId],
-    queryFn: async () => {
-      const { data } = await api.get<ApiResponse<ExperienceImage[]>>(
-        "/image_list",
-        { params: { experience_id: experienceId } }
-      )
-      return data.data ?? []
-    },
-  })
+  const list = useImages(experienceId)
 
   const items = React.useMemo(
     () =>
       [...(list.data ?? [])].sort(
-        (a, b) =>
-          Number(b.is_cover) - Number(a.is_cover) ||
-          a.sort_order - b.sort_order
+        (a, b) => b.is_cover - a.is_cover || a.sort_order - b.sort_order
       ),
     [list.data]
   )
@@ -191,10 +181,10 @@ export function ImagesTab({ experienceId }: { experienceId: number }) {
     <div className="space-y-5">
       <Card>
         <CardHeader>
-          <CardTitle>Subir imágenes</CardTitle>
+          <CardTitle>Subir fotos</CardTitle>
           <CardDescription>
-            Arrastrá archivos o hacé click. JPG / PNG / WEBP, hasta 5MB cada
-            una.
+            Podés subir varias a la vez. Mejor horizontales y luminosas
+            (JPG, PNG o WEBP, hasta 5 MB cada una).
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -222,10 +212,10 @@ export function ImagesTab({ experienceId }: { experienceId: number }) {
             </div>
             <div className="text-center">
               <p className="font-medium">
-                {dragOver ? "Soltá para subir" : "Arrastrá imágenes aquí"}
+                {dragOver ? "Soltá para subir" : "Arrastrá tus fotos acá"}
               </p>
               <p className="text-muted-foreground text-xs">
-                o hacé click para seleccionar archivos
+                o tocá para elegirlas de tu compu o celular
               </p>
             </div>
           </button>
@@ -245,7 +235,7 @@ export function ImagesTab({ experienceId }: { experienceId: number }) {
           <details className="rounded-md border">
             <summary className="text-muted-foreground hover:bg-muted/30 flex cursor-pointer items-center gap-2 px-3 py-2 text-xs">
               <Link2 className="size-3.5" />
-              ¿Ya tenés la imagen alojada? Agregar por URL
+              ¿La foto ya está en internet? Agregala con su link
             </summary>
             <div className="grid gap-2 p-3 sm:grid-cols-[1fr,1fr,auto]">
               <Input
@@ -256,7 +246,7 @@ export function ImagesTab({ experienceId }: { experienceId: number }) {
               <Input
                 value={altInput}
                 onChange={(e) => setAltInput(e.target.value)}
-                placeholder="Texto alternativo (opcional)"
+                placeholder="Qué se ve en la foto (opcional)"
               />
               <Button
                 size="sm"
@@ -318,7 +308,8 @@ export function ImagesTab({ experienceId }: { experienceId: number }) {
             Galería ({items.length})
           </CardTitle>
           <CardDescription>
-            La primera marcada como portada es la imagen principal.
+            La <strong>portada</strong> es la foto que aparece en el listado.
+            Tocá la estrella de otra foto para cambiarla.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -335,12 +326,12 @@ export function ImagesTab({ experienceId }: { experienceId: number }) {
           ) : items.length === 0 ? (
             <div className="text-muted-foreground flex flex-col items-center gap-2 py-10 text-center text-sm">
               <ImageIcon className="size-8" />
-              <p>Sin imágenes todavía. Subí la primera arriba.</p>
+              <p>Todavía no hay fotos. Sin fotos la experiencia no luce en el sitio.</p>
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
               {items.map((img) => {
-                const isCover = Number(img.is_cover) === 1
+                const isCover = img.is_cover === 1
                 return (
                   <div
                     key={img.id}
@@ -358,9 +349,9 @@ export function ImagesTab({ experienceId }: { experienceId: number }) {
                         Portada
                       </span>
                     )}
-                    <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-gradient-to-t from-black/70 to-transparent p-2 opacity-0 transition group-hover:opacity-100">
+                    <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-gradient-to-t from-black/70 to-transparent p-2 transition sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100">
                       <span className="truncate text-[11px] text-white">
-                        {img.alt_text || `#${img.sort_order}`}
+                        {img.alt_text}
                       </span>
                       <div className="flex gap-1">
                         {!isCover && (
@@ -369,7 +360,8 @@ export function ImagesTab({ experienceId }: { experienceId: number }) {
                             size="icon-xs"
                             onClick={() => setCover.mutate(img.id)}
                             disabled={setCover.isPending}
-                            title="Marcar portada"
+                            title="Usar como portada"
+                            aria-label="Usar como portada"
                           >
                             <Star className="size-3" />
                           </Button>
@@ -378,7 +370,7 @@ export function ImagesTab({ experienceId }: { experienceId: number }) {
                           variant="destructive"
                           size="icon-xs"
                           onClick={() => {
-                            if (confirm("¿Eliminar esta imagen?"))
+                            if (confirm("¿Eliminar esta foto?"))
                               remove.mutate(img.id)
                           }}
                           disabled={remove.isPending}

@@ -1,387 +1,177 @@
 "use client"
 
-import * as React from "react"
 import Link from "next/link"
 import { useQuery } from "@tanstack/react-query"
-import {
-  AlertTriangle,
-  CalendarClock,
-  CalendarDays,
-  CheckCircle2,
-  CreditCard,
-  Loader2,
-  MapPin,
-  MessageSquare,
-  Users,
-} from "lucide-react"
+import { AlertTriangle, ArrowRight, BellRing, ImageIcon, Plus } from "lucide-react"
 
 import { api } from "@/lib/api"
-import { whatsappLink } from "@/lib/leads"
 import { useAuth } from "@/hooks/useAuth"
-import { cn } from "@/lib/utils"
-import type {
-  ApiResponse,
-  Lead,
-  Provider,
-  ProviderDashboardStats,
-} from "@/types"
+import { cn, isoDate, longDay } from "@/lib/utils"
+import type { ApiResponse, Experience, Provider, ProviderDashboardStats } from "@/types"
 
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-import { Badge } from "@/components/ui/badge"
 import { buttonVariants } from "@/components/ui/button"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-
-function todayIso(): string {
-  return new Date().toISOString().slice(0, 10)
-}
-
-function isoPlusDays(days: number): string {
-  const d = new Date()
-  d.setDate(d.getDate() + days)
-  return d.toISOString().slice(0, 10)
-}
-
-function formatLongDate(iso?: string | null): string {
-  if (!iso) return "—"
-  const d = new Date(iso + "T00:00:00")
-  return d.toLocaleDateString("es-AR", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  })
-}
+import { EmptyState, ListSkeleton, PageHeader, SectionTitle } from "@/components/page"
+import { Agenda } from "@/components/provider/booking"
+import { isPending, useBookings } from "@/components/provider/queries"
+import { experienceGaps } from "@/components/experiences/readiness"
 
 export default function ProviderHomePage() {
   const { user } = useAuth()
   const providerId = user?.providerId
-
-  const stats = useQuery({
-    queryKey: ["provider-dashboard", providerId],
-    enabled: !!providerId,
-    queryFn: async () => {
-      const { data } = await api.get<ApiResponse<ProviderDashboardStats>>(
-        "/provider_dashboard",
-        { params: { id: providerId } }
-      )
-      return data.data
-    },
-  })
+  const bookings = useBookings()
 
   const provider = useQuery({
     queryKey: ["provider", providerId],
     enabled: !!providerId,
-    queryFn: async () => {
-      const { data } = await api.get<ApiResponse<Provider>>("/provider_get", {
-        params: { id: providerId },
-      })
-      return data.data
-    },
+    queryFn: async () =>
+      (await api.get<ApiResponse<Provider>>("/provider_get", { params: { id: providerId } })).data.data,
   })
-
-  // Próximas reservas confirmadas (próximos 14 días)
-  const upcoming = useQuery({
-    queryKey: ["provider-upcoming", providerId],
+  const stats = useQuery({
+    queryKey: ["provider-dashboard", providerId],
     enabled: !!providerId,
-    queryFn: async () => {
-      const { data } = await api.get<ApiResponse<Lead[]>>("/lead_list", {
-        params: {
-          status: "confirmed",
-          from_date: todayIso(),
-          to_date: isoPlusDays(14),
-          limit: 50,
-        },
-      })
-      return data.data ?? []
-    },
+    queryFn: async () =>
+      (await api.get<ApiResponse<ProviderDashboardStats>>("/provider_dashboard", { params: { id: providerId } })).data
+        .data,
   })
-
-  // Últimos mensajes nuevos
-  const newLeads = useQuery({
-    queryKey: ["provider-new-leads", providerId],
+  const experiences = useQuery({
+    queryKey: ["experiences", "mine", providerId],
     enabled: !!providerId,
-    queryFn: async () => {
-      const { data } = await api.get<ApiResponse<Lead[]>>("/lead_list", {
-        params: { status: "new", limit: 5 },
-      })
-      return data.data ?? []
-    },
+    queryFn: async () =>
+      (await api.get<ApiResponse<Experience[]>>("/experience_list", { params: { limit: 50 } })).data.data ?? [],
   })
 
-  const newCount = newLeads.data?.length ?? 0
-  const upcomingCount = upcoming.data?.length ?? 0
-  const upcomingPax =
-    upcoming.data?.reduce((acc, l) => acc + (Number(l.pax) || 0), 0) ?? 0
+  const all = bookings.data ?? []
+  const fresh = all.filter((l) => l.status === "new").length
+  const pending = all.filter(isPending).length
+  const week = all.filter((l) => l.status !== "lost" && l.status !== "spam")
 
-  const next = upcoming.data?.[0] ?? null
-  const daysUntilExpire = stats.data?.days_until_expire ?? null
-  const expiringSoon = daysUntilExpire !== null && daysUntilExpire <= 7
-  const expired = daysUntilExpire !== null && daysUntilExpire < 0
+  const firstName = provider.data?.contact_name?.split(" ")[0]
+  const days = stats.data?.days_until_expire == null ? null : Number(stats.data.days_until_expire)
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">
-            Hola, {provider.data?.business_name ?? "—"}
-          </h1>
-          <p className="text-muted-foreground text-sm">
-            Resumen de tu actividad como guía.
-          </p>
-        </div>
-        <Badge variant="secondary" className="capitalize">
-          {provider.data?.status ?? "—"}
-        </Badge>
-      </div>
+    <>
+      <PageHeader
+        title={firstName ? `Hola, ${firstName}` : "Hola"}
+        description={<span className="first-letter:uppercase">{longDay(isoDate())}</span>}
+      />
 
-      {/* Alertas */}
-      {expired && (
-        <Alert variant="destructive">
-          <AlertTriangle className="size-4" />
-          <AlertTitle>Suscripción vencida</AlertTitle>
-          <AlertDescription>
-            Tu cuenta ya no aparece en el sitio público. Contactá al admin para
-            regularizar el pago.
-          </AlertDescription>
-        </Alert>
-      )}
-      {!expired && expiringSoon && (
-        <Alert>
-          <AlertTriangle className="size-4" />
-          <AlertTitle>Tu suscripción vence en {daysUntilExpire} días</AlertTitle>
-          <AlertDescription>
-            Renová tu pago para no perder visibilidad en el sitio.
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* KPIs */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <KpiCard
-          icon={<MessageSquare className="size-4" />}
-          label="Mensajes nuevos"
-          value={newCount}
-          href="/provider/leads"
-          tone={newCount > 0 ? "amber" : "muted"}
-        />
-        <KpiCard
-          icon={<CalendarClock className="size-4" />}
-          label="Próximas reservas"
-          value={upcomingCount}
-          href="/provider/reservas"
-          tone="cyan"
-        />
-        <KpiCard
-          icon={<Users className="size-4" />}
-          label="Personas confirmadas"
-          value={upcomingPax}
-          href="/provider/reservas"
-          tone="emerald"
-        />
-        <KpiCard
-          icon={<CreditCard className="size-4" />}
-          label="Días para vencer"
-          value={daysUntilExpire ?? "—"}
-          href="/provider/suscripcion"
-          tone={
-            expired
-              ? "red"
-              : expiringSoon
-              ? "amber"
-              : "muted"
-          }
-        />
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Próxima excursión */}
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CalendarDays className="size-4" />
-              Próxima excursión confirmada
-            </CardTitle>
-            <CardDescription>
-              La primera con personas confirmadas asistir.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {upcoming.isLoading ? (
-              <div className="flex h-24 items-center justify-center">
-                <Loader2 className="text-muted-foreground size-5 animate-spin" />
-              </div>
-            ) : !next ? (
-              <p className="text-muted-foreground text-sm">
-                No hay reservas confirmadas próximas. Cuando confirmes una desde{" "}
-                <Link
-                  href="/provider/leads"
-                  className="text-foreground underline underline-offset-2"
-                >
-                  Mensajes
-                </Link>
-                , va a aparecer acá.
-              </p>
-            ) : (
-              <NextExcursion lead={next} />
+      <div className="space-y-3">
+        {days !== null && days <= 15 && (
+          <Link
+            href="/provider/cuenta"
+            className={cn(
+              "flex items-center gap-3 rounded-xl border p-4 transition-colors",
+              days < 0 ? "border-destructive/30 bg-destructive/5 hover:bg-destructive/10" : "border-highlight/40 bg-highlight-soft hover:brightness-[0.98]"
             )}
-          </CardContent>
-        </Card>
-
-        {/* Mensajes nuevos */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <MessageSquare className="size-4" />
-              Mensajes nuevos
-            </CardTitle>
-            <CardDescription>
-              Turistas que pidieron reserva todavía sin contactar.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {newLeads.isLoading ? (
-              <div className="flex h-24 items-center justify-center">
-                <Loader2 className="text-muted-foreground size-5 animate-spin" />
-              </div>
-            ) : newCount === 0 ? (
-              <p className="text-muted-foreground text-sm">
-                Sin mensajes nuevos.
-              </p>
-            ) : (
-              newLeads.data?.map((l) => (
-                <Link
-                  key={l.id}
-                  href={`/provider/leads`}
-                  className="hover:bg-muted/50 flex flex-col gap-0.5 rounded-md border p-2 text-sm transition"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-medium">{l.tourist_name}</span>
-                    <span className="text-muted-foreground text-xs">
-                      {l.pax} pax
-                    </span>
-                  </div>
-                  <span className="text-muted-foreground line-clamp-1 text-xs">
-                    {l.experience_title} · {l.desired_date}
-                  </span>
-                </Link>
-              ))
-            )}
-            {newCount > 0 && (
-              <Link
-                href="/provider/leads"
-                className={cn(
-                  buttonVariants({ variant: "outline", size: "sm" }),
-                  "w-full"
-                )}
-              >
-                Ver todos
-              </Link>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    </div>
-  )
-}
-
-function NextExcursion({ lead }: { lead: Lead }) {
-  const waLink = whatsappLink(lead)
-  return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <div>
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">
-            {formatLongDate(lead.desired_date)}
-            {lead.desired_time && ` · ${lead.desired_time.slice(0, 5)}`}
-          </p>
-          <h3 className="text-lg font-semibold leading-tight">
-            {lead.experience_title}
-          </h3>
-        </div>
-        <div className="flex items-center gap-2 text-sm">
-          <Users className="text-muted-foreground size-4" />
-          <span className="font-medium">{lead.pax}</span>
-          <span className="text-muted-foreground">pax</span>
-        </div>
-      </div>
-
-      {lead.city && (
-        <p className="text-muted-foreground flex items-center gap-1 text-xs">
-          <MapPin className="size-3" />
-          {lead.city}
-        </p>
-      )}
-
-      <div className="bg-muted/50 rounded-md p-3">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className="text-sm font-medium">{lead.tourist_name}</p>
-            <p className="text-muted-foreground text-xs">{lead.tourist_phone}</p>
-          </div>
-          {waLink && (
-            <a
-              href={waLink}
-              target="_blank"
-              rel="noopener"
-              className={cn(
-                buttonVariants({ size: "sm" }),
-                "bg-green-600 hover:bg-green-700 text-white"
+          >
+            <AlertTriangle className={cn("size-5 shrink-0", days < 0 ? "text-destructive" : "text-highlight-foreground")} />
+            <span className="flex-1 text-[0.9375rem]">
+              {days < 0 ? (
+                <><strong>Tu suscripción venció.</strong> Tus experiencias no se ven en el sitio.</>
+              ) : (
+                <><strong>Tu suscripción vence en {days} {days === 1 ? "día" : "días"}.</strong> Renová para seguir apareciendo.</>
               )}
-            >
-              <CheckCircle2 className="size-4" />
-              WhatsApp
-            </a>
-          )}
-        </div>
-        {lead.message && (
-          <p className="text-muted-foreground mt-2 line-clamp-3 text-xs italic">
-            &ldquo;{lead.message}&rdquo;
-          </p>
+            </span>
+            <ArrowRight className="text-muted-foreground size-4" />
+          </Link>
+        )}
+
+        {pending > 0 && (
+          <Link
+            href="/provider/reservas?vista=pendientes"
+            className="bg-primary text-primary-foreground group flex items-center gap-4 rounded-xl p-4 shadow-sm transition-colors hover:bg-primary/95 sm:p-5"
+          >
+            <span className="bg-primary-foreground/15 flex size-11 shrink-0 items-center justify-center rounded-full">
+              <BellRing className="size-5" />
+            </span>
+            <span className="flex-1">
+              <span className="block text-lg font-semibold">
+                {pending} {pending === 1 ? "reserva" : "reservas"} por confirmar
+              </span>
+              <span className="text-primary-foreground/80 block text-sm">
+                {fresh > 0
+                  ? `${fresh === 1 ? "Una es nueva" : `${fresh} son nuevas`}: respondé hoy, quien no recibe respuesta suele reservar en otro lado.`
+                  : "Ya les escribiste: marcá cada una cuando te confirme."}
+              </span>
+            </span>
+            <ArrowRight className="size-5 shrink-0 transition-transform group-hover:translate-x-0.5" />
+          </Link>
         )}
       </div>
-    </div>
-  )
-}
 
-function KpiCard({
-  icon,
-  label,
-  value,
-  href,
-  tone,
-}: {
-  icon: React.ReactNode
-  label: string
-  value: number | string
-  href?: string
-  tone: "amber" | "cyan" | "emerald" | "red" | "muted"
-}) {
-  const tones: Record<typeof tone, string> = {
-    amber: "border-amber-200 bg-amber-50/60 dark:border-amber-900 dark:bg-amber-950/30",
-    cyan: "border-cyan-200 bg-cyan-50/60 dark:border-cyan-900 dark:bg-cyan-950/30",
-    emerald: "border-emerald-200 bg-emerald-50/60 dark:border-emerald-900 dark:bg-emerald-950/30",
-    red: "border-red-200 bg-red-50/60 dark:border-red-900 dark:bg-red-950/30",
-    muted: "",
-  }
-  const body = (
-    <div
-      className={cn(
-        "flex flex-col gap-2 rounded-md border p-3 transition",
-        tones[tone],
-        href && "hover:brightness-95"
-      )}
-    >
-      <div className="text-muted-foreground flex items-center gap-1.5 text-xs">
-        {icon}
-        {label}
-      </div>
-      <div className="text-2xl font-bold tabular-nums leading-none">{value}</div>
-    </div>
+      <section className="mt-8">
+        <SectionTitle
+          title="Próximas salidas"
+          action={
+            week.length > 0 && (
+              <Link href="/provider/reservas?vista=proximas" className="text-primary text-sm font-medium hover:underline">
+                Ver agenda
+              </Link>
+            )
+          }
+        />
+        {bookings.isLoading ? <ListSkeleton rows={2} /> : <Agenda leads={week} limitDays={3} />}
+      </section>
+
+      <section className="mt-10">
+        <SectionTitle
+          title="Tus experiencias"
+          action={
+            <Link href="/provider/experiencias/new" className={buttonVariants({ variant: "outline", size: "sm" })}>
+              <Plus />
+              Nueva
+            </Link>
+          }
+        />
+        {experiences.isLoading ? (
+          <ListSkeleton rows={2} />
+        ) : !experiences.data?.length ? (
+          <EmptyState
+            icon={ImageIcon}
+            title="Todavía no cargaste experiencias"
+            action={
+              <Link href="/provider/experiencias/new" className={buttonVariants()}>
+                <Plus />
+                Crear mi primera experiencia
+              </Link>
+            }
+          >
+            Te lleva 5 minutos: nombre, fotos, horarios y listo.
+          </EmptyState>
+        ) : (
+          <ul className="bg-card divide-y rounded-xl border">
+            {experiences.data.map((e) => {
+              const gaps = experienceGaps(e)
+              const visible = Number(e.is_active) === 1
+              return (
+                <li key={e.id}>
+                  <Link href={`/provider/experiencias/${e.id}`} className="hover:bg-muted/50 flex items-center gap-3 p-3 transition-colors sm:px-4">
+                    <span className="bg-muted relative size-12 shrink-0 overflow-hidden rounded-lg">
+                      {e.cover_image ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={e.cover_image} alt="" className="size-full object-cover" />
+                      ) : (
+                        <ImageIcon className="text-muted-foreground absolute inset-0 m-auto size-5" />
+                      )}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-medium">{e.title}</span>
+                      <span className={cn("block text-sm", gaps.length ? "text-highlight-foreground" : "text-muted-foreground")}>
+                        {gaps.length
+                          ? `Le falta: ${gaps.join(", ").toLowerCase()}`
+                          : visible
+                            ? "Visible en el sitio"
+                            : "Lista, pero oculta"}
+                      </span>
+                    </span>
+                    <ArrowRight className="text-muted-foreground size-4 shrink-0" />
+                  </Link>
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      </section>
+    </>
   )
-  return href ? <Link href={href}>{body}</Link> : body
 }

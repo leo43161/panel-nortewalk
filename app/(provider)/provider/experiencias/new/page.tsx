@@ -1,44 +1,24 @@
 "use client"
 
-import Link from "next/link"
-import { ChevronLeft, Loader2 } from "lucide-react"
-
 import { useAuth } from "@/hooks/useAuth"
-import { buttonVariants } from "@/components/ui/button"
-import { ExperienceCreateForm } from "@/components/experiences/experience-create-form"
+import { ExperienceForm } from "@/components/experiences/experience-form"
+import { ListSkeleton, PageHeader } from "@/components/page"
 
 export default function NewProviderExperiencePage() {
   const { user } = useAuth()
   const providerId = user?.providerId
 
   return (
-    <div className="max-w-4xl space-y-6">
-      <div>
-        <Link
-          href="/provider/experiencias"
-          className={buttonVariants({ variant: "ghost", size: "sm" })}
-        >
-          <ChevronLeft className="size-4" />
-          Volver a experiencias
-        </Link>
-      </div>
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Nueva experiencia</h1>
-        <p className="text-muted-foreground text-sm">
-          Carga rápida. Imágenes, inclusiones, itinerario y horarios se completan
-          después en el editor.
-        </p>
-      </div>
-
+    <div className="max-w-4xl">
+      <PageHeader
+        back={{ href: "/provider/experiencias", label: "Experiencias" }}
+        title="Nueva experiencia"
+        description="Primero lo básico. Al guardar seguís con fotos, qué incluye y horarios: se publica cuando esté completa."
+      />
       {!providerId ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="text-muted-foreground size-6 animate-spin" />
-        </div>
+        <ListSkeleton />
       ) : (
-        <ExperienceCreateForm
-          forcedProviderId={providerId}
-          redirectBase="/provider/experiencias"
-        />
+        <ExperienceForm mode="create" forcedProviderId={providerId} redirectBase="/provider/experiencias" />
       )}
     </div>
   )

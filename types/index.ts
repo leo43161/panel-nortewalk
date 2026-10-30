@@ -89,26 +89,28 @@ export interface Experience {
   city: string
   province: string
   country: string
+  latitude: string | number | null
+  longitude: string | number | null
   min_pax: number
   max_pax: number
+  min_age: number
   is_active: 0 | 1
   is_featured: 0 | 1
   external_rating: string | number | null
   external_reviews_count: number
+  external_reviews_url: string | null
+  meta_title: string | null
+  meta_description: string | null
   created_at: string
   updated_at: string
   // joined from SP
   provider_name?: string
   provider_status?: ProviderStatus
   total_leads?: number
-}
-
-export interface Schedule {
-  id: number
-  experience_id: number
-  starts_at: string
-  capacity: number
-  locale: Locale
+  cover_image?: string | null
+  /** sp_experience_list_admin (migración v9) */
+  active_schedules?: number | string
+  inclusions_count?: number | string
 }
 
 export type PaymentMethod =
@@ -192,18 +194,53 @@ export interface ExperienceSchedule {
   valid_to: string | null
 }
 
+/** Día puntual sin salidas (feriado, vacaciones, lluvia). */
+export interface ExperienceBlackout {
+  id: number
+  experience_id: number
+  blackout_date: string // YYYY-MM-DD
+  reason: string | null
+}
+
+/** GET /translation_get — sólo EN/PT; si falta un campo el sitio muestra el español. */
+export interface ExperienceTranslations {
+  experience: {
+    locale: "en" | "pt"
+    title: string | null
+    short_desc: string | null
+    long_desc: string | null
+    meeting_point: string | null
+    meta_title: string | null
+    meta_description: string | null
+  }[]
+  /** entity_id = id de la inclusión, title = texto traducido */
+  inclusions: { entity_id: number; locale: "en" | "pt"; title: string | null }[]
+  /** entity_id = id del paso */
+  itinerary: {
+    entity_id: number
+    locale: "en" | "pt"
+    title: string | null
+    description: string | null
+  }[]
+}
+
 export interface Lead {
   id: number
+  /** Código visible para el turista, ej. "NW-7K3FQ". */
+  booking_code: string | null
   experience_id: number
   provider_id: number
   schedule_id: number | null
   tourist_name: string
+  tourist_surname: string | null
   tourist_phone: string
   tourist_email: string | null
   preferred_locale: Locale
   desired_date: string
   desired_time: string | null
   pax: number
+  pax_adults: number
+  pax_children: number
   message: string | null
   source: string | null
   utm_source?: string | null
@@ -223,8 +260,9 @@ export interface Lead {
   provider_name?: string
   whatsapp_e164?: string
   provider_email?: string
-  // from sp_lead_get_detail (schedule join)
+  // from sp_lead_get_detail / sp_booking_list_upcoming (schedule join)
   day_of_week?: number | null
   schedule_time?: string | null
   schedule_locale?: Locale | null
+  schedule_capacity?: number | null
 }

@@ -2,177 +2,174 @@
 
 import Link from "next/link"
 import { useQueries } from "@tanstack/react-query"
-import { AlarmClock, ArrowRight, MessageSquare, Users } from "lucide-react"
+import { AlarmClock, ArrowRight, CheckCircle2, MessageSquareWarning } from "lucide-react"
 
 import { api } from "@/lib/api"
-import type { ApiResponse, Provider } from "@/types"
+import { isoFirstOfMonth, relativeTime } from "@/lib/leads"
+import { cn, daysUntil, fullDate, isoDate } from "@/lib/utils"
+import type { ApiResponse, Lead, Provider } from "@/types"
 
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
-import { cn } from "@/lib/utils"
+import { PageHeader, SectionTitle } from "@/components/page"
+import { fullName } from "@/components/provider/booking"
 
-function monthStart(): string {
-  const d = new Date()
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, "0")
-  return `${y}-${m}-01`
-}
+const DAY_MS = 86_400_000
 
 export default function DashboardPage() {
-  const results = useQueries({
+  const [active, leadsMonth, fresh, expiring] = useQueries({
     queries: [
       {
-        queryKey: ["dashboard", "active-count"],
+        queryKey: ["dashboard", "active"],
+        queryFn: async () =>
+          (await api.get<ApiResponse<unknown[]>>("/provider_list", { params: { status: "active", limit: 1 } })).data.meta
+            ?.total ?? 0,
+      },
+      {
+        queryKey: ["dashboard", "leads-month"],
+        queryFn: async () =>
+          (await api.get<ApiResponse<unknown[]>>("/lead_list", { params: { from_date: isoFirstOfMonth(), to_date: isoDate(), limit: 1 } }))
+            .data.meta?.total ?? 0,
+      },
+      {
+        queryKey: ["dashboard", "stale-leads"],
+        // Reservas que un guía no respondió en más de un día: hay que avisarle.
         queryFn: async () => {
-          const { data } = await api.get<ApiResponse<unknown[]>>(
-            "/provider_list",
-            { params: { status: "active", limit: 1 } }
-          )
-          return data.meta?.total ?? 0
+          const rows = (await api.get<ApiResponse<Lead[]>>("/lead_list", { params: { status: "new", limit: 100 } })).data.data ?? []
+          const cutoff = Date.now() - DAY_MS
+          return rows.filter((l) => new Date(l.created_at.replace(" ", "T")).getTime() < cutoff)
         },
       },
       {
         queryKey: ["dashboard", "expiring"],
-        queryFn: async () => {
-          const { data } = await api.get<ApiResponse<Provider[]>>(
-            "/subscription_expiring",
-            { params: { days: 7 } }
-          )
-          return data.data ?? []
-        },
-      },
-      {
-        queryKey: ["dashboard", "leads-month"],
-        queryFn: async () => {
-          const { data } = await api.get<ApiResponse<unknown[]>>(
-            "/lead_list",
-            { params: { from_date: monthStart(), limit: 1 } }
-          )
-          return data.meta?.total ?? 0
-        },
+        queryFn: async () =>
+          (await api.get<ApiResponse<Provider[]>>("/subscription_expiring", { params: { days: 14 } })).data.data ?? [],
       },
     ],
   })
 
-  const [activeCount, expiring, leadsMonth] = results
-  const expiringCount = expiring.data?.length ?? 0
+  const stale = fresh.data ?? []
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground text-sm">Resumen general del sistema</p>
-      </div>
+    <>
+      <PageHeader title="Resumen" description="Lo que necesita tu atención hoy." />
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <StatCard
-          icon={<Users className="size-5" />}
-          iconBg="bg-primary/10 text-primary"
-          label="Proveedores activos"
-          loading={activeCount.isLoading}
-          value={activeCount.data ?? 0}
-          href="/providers"
-        />
-        <StatCard
-          icon={<AlarmClock className="size-5" />}
-          iconBg={
-            expiringCount > 0
-              ? "bg-accent/15 text-accent"
-              : "bg-muted text-muted-foreground"
-          }
-          label="Vencen en 7 días"
-          loading={expiring.isLoading}
-          value={expiringCount}
-          href="/subscriptions/expiring"
-          accent={expiringCount > 0 ? "amber" : undefined}
-        />
-        <StatCard
-          icon={<MessageSquare className="size-5" />}
-          iconBg="bg-secondary text-secondary-foreground"
-          label="Leads del mes"
-          loading={leadsMonth.isLoading}
-          value={leadsMonth.data ?? 0}
+      <div className="grid gap-3 sm:grid-cols-3">
+        <Stat label="Proveedores activos" value={active.data} loading={active.isLoading} href="/providers" />
+        <Stat label="Reservas este mes" value={leadsMonth.data} loading={leadsMonth.isLoading} href="/leads" />
+        <Stat
+          label="Sin respuesta hace +24 h"
+          value={stale.length}
+          loading={fresh.isLoading}
           href="/leads"
+          alert={stale.length > 0}
         />
       </div>
 
-      {expiringCount > 0 && (
-        <Card className="border-accent/30 bg-accent/5">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-accent flex items-center gap-2 text-base">
-              <AlarmClock className="size-4" />
-              Proveedores próximos a vencer
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-0">
-            {(expiring.data ?? []).slice(0, 6).map((p) => (
-              <div
-                key={p.id}
-                className="flex items-center justify-between border-b py-2 text-sm last:border-0"
-              >
-                <Link
-                  href={`/providers/${p.id}`}
-                  className="font-medium hover:underline"
-                >
-                  {p.business_name}
-                </Link>
-                <span className="text-muted-foreground text-xs tabular-nums">
-                  {p.paid_until}
-                </span>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
-    </div>
+      <div className="mt-8 grid gap-8 lg:grid-cols-2">
+        <section>
+          <SectionTitle title="Reservas sin responder" />
+          {fresh.isLoading ? (
+            <Skeleton className="h-40 rounded-xl" />
+          ) : stale.length === 0 ? (
+            <AllGood>Todos los guías respondieron sus reservas del último día.</AllGood>
+          ) : (
+            <ul className="bg-card divide-y rounded-xl border">
+              {stale.slice(0, 8).map((l) => (
+                <li key={l.id}>
+                  <Link href={`/leads/${l.id}`} className="hover:bg-muted/50 flex items-center gap-3 px-4 py-3 transition-colors">
+                    <MessageSquareWarning className="text-highlight size-5 shrink-0" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate font-medium">
+                        {fullName(l)} <span className="text-muted-foreground font-normal">→ {l.provider_name}</span>
+                      </span>
+                      <span className="text-muted-foreground block truncate text-sm">
+                        {l.experience_title} · pidió {relativeTime(l.created_at)}
+                      </span>
+                    </span>
+                    <ArrowRight className="text-muted-foreground size-4 shrink-0" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        <section>
+          <SectionTitle
+            title="Suscripciones por vencer"
+            action={
+              <Link href="/subscriptions/expiring" className="text-primary text-sm font-medium hover:underline">
+                Ver todas
+              </Link>
+            }
+          />
+          {expiring.isLoading ? (
+            <Skeleton className="h-40 rounded-xl" />
+          ) : !expiring.data?.length ? (
+            <AllGood>Nadie vence en las próximas dos semanas.</AllGood>
+          ) : (
+            <ul className="bg-card divide-y rounded-xl border">
+              {expiring.data.slice(0, 8).map((p) => {
+                const until = p.status === "trial" ? p.trial_ends_at : p.paid_until
+                const d = daysUntil(until)
+                return (
+                  <li key={p.id}>
+                    <Link href={`/providers/${p.id}`} className="hover:bg-muted/50 flex items-center gap-3 px-4 py-3 transition-colors">
+                      <AlarmClock className={cn("size-5 shrink-0", d !== null && d <= 3 ? "text-destructive" : "text-highlight")} />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate font-medium">{p.business_name}</span>
+                        <span className="text-muted-foreground block text-sm">
+                          {p.status === "trial" ? "Termina la prueba" : "Vence"} el {fullDate(until)}
+                          {d !== null && ` · ${d === 0 ? "hoy" : d === 1 ? "mañana" : `en ${d} días`}`}
+                        </span>
+                      </span>
+                      <ArrowRight className="text-muted-foreground size-4 shrink-0" />
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+        </section>
+      </div>
+    </>
   )
 }
 
-function StatCard({
-  icon,
-  iconBg,
+function Stat({
   label,
   value,
   loading,
   href,
-  accent,
+  alert,
 }: {
-  icon: React.ReactNode
-  iconBg: string
   label: string
-  value: number
+  value?: number
   loading: boolean
   href: string
-  accent?: "amber"
+  alert?: boolean
 }) {
   return (
-    <Link href={href} className="group">
-      <Card className="transition-shadow hover:shadow-md">
-        <CardHeader className="pb-2">
-          <div className="flex items-center justify-between">
-            <div className={cn("flex size-9 items-center justify-center rounded-lg", iconBg)}>
-              {icon}
-            </div>
-            <ArrowRight className="size-4 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
-          </div>
-        </CardHeader>
-        <CardContent className="pt-0">
-          <div
-            className={cn(
-              "text-3xl font-bold tabular-nums",
-              accent === "amber" && "text-accent"
-            )}
-          >
-            {loading ? <Skeleton className="h-9 w-14" /> : value}
-          </div>
-          <p className="text-muted-foreground mt-1 text-sm">{label}</p>
-        </CardContent>
-      </Card>
+    <Link
+      href={href}
+      className={cn(
+        "bg-card group rounded-xl border p-4 shadow-xs transition hover:shadow-md sm:p-5",
+        alert && "border-highlight/40 bg-highlight-soft"
+      )}
+    >
+      <p className={cn("text-sm", alert ? "text-highlight-foreground font-medium" : "text-muted-foreground")}>{label}</p>
+      <div className="font-heading mt-1 text-3xl font-semibold tabular-nums">
+        {loading ? <Skeleton className="h-9 w-14" /> : Number(value ?? 0)}
+      </div>
     </Link>
+  )
+}
+
+function AllGood({ children }: { children: React.ReactNode }) {
+  return (
+    <p className="bg-card text-muted-foreground flex items-center gap-2 rounded-xl border px-4 py-5 text-sm">
+      <CheckCircle2 className="size-5 shrink-0 text-emerald-600" />
+      {children}
+    </p>
   )
 }

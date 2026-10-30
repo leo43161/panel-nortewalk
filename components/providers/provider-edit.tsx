@@ -10,6 +10,7 @@ import type { ApiResponse, Provider } from "@/types"
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { buttonVariants } from "@/components/ui/button"
+import { PageHeader } from "@/components/page"
 import { ProviderForm } from "@/components/providers/provider-form"
 
 export function ProviderEdit({ id }: { id: number }) {
@@ -50,16 +51,7 @@ export function ProviderEdit({ id }: { id: number }) {
 
       {q.data && (
         <>
-          <div>
-            <h1 className="text-2xl font-bold tracking-tight">
-              Editar {q.data.business_name}
-            </h1>
-            <p className="text-muted-foreground text-sm">
-              Slug: <code className="bg-muted rounded px-1">{q.data.slug}</code>{" "}
-              · Estado:{" "}
-              <code className="bg-muted rounded px-1">{q.data.status}</code>
-            </p>
-          </div>
+          <PageHeader title={`Editar ${q.data.business_name}`} />
           <ProviderForm mode="edit" initial={q.data} />
         </>
       )}

@@ -66,7 +66,7 @@ export default function LoginPage() {
       if (!token) throw new Error("Respuesta de login sin token")
       login(token)
       const role = data.data.admin.role
-      toast.success(`Bienvenido, ${data.data.admin.full_name || data.data.admin.email}`)
+      toast.success(`¡Hola, ${(data.data.admin.full_name || data.data.admin.email).split(" ")[0]}!`)
       router.replace(homePathForRole(role))
     } catch (err) {
       toast.error(apiErrorMessage(err, "No se pudo iniciar sesión"))
@@ -80,16 +80,14 @@ export default function LoginPage() {
       <div className="flex flex-col items-center gap-3 text-center">
         <BrandLogo className="size-14" />
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[#FAF7F0]">
-            Norte Walk
-          </h1>
-          <p className="text-sm text-[#E5D9B6]/70">Panel administrativo</p>
+          <h1 className="font-logo text-3xl text-[#FAF6EC]">Norte Walk</h1>
+          <p className="mt-1 text-sm text-[#E5D9B6]/80">Panel de guías y administración</p>
         </div>
       </div>
     <Card className="w-full">
       <CardHeader className="pb-4">
-        <CardTitle className="text-lg">Iniciar sesión</CardTitle>
-        <CardDescription>Ingresá con tu cuenta de administrador</CardDescription>
+        <CardTitle className="text-lg">Entrar</CardTitle>
+        <CardDescription>Con el email y la contraseña que te dio Norte Walk.</CardDescription>
       </CardHeader>
       <CardContent>
         <Form {...form}>
@@ -108,7 +106,8 @@ export default function LoginPage() {
                     <Input
                       type="email"
                       autoComplete="email"
-                      placeholder="admin@nortewalk.com"
+                      inputMode="email"
+                      placeholder="tu@email.com"
                       {...field}
                     />
                   </FormControl>
@@ -133,9 +132,9 @@ export default function LoginPage() {
                 </FormItem>
               )}
             />
-            <Button type="submit" className="w-full" disabled={submitting}>
+            <Button type="submit" size="lg" className="w-full" disabled={submitting}>
               {submitting && <Loader2 className="size-4 animate-spin" />}
-              Iniciar sesión
+              {submitting ? "Entrando…" : "Entrar"}
             </Button>
           </form>
         </Form>
